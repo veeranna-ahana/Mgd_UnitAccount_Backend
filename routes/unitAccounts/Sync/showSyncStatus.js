@@ -69,10 +69,12 @@ showSyncStatusRouter.put(
   }
 );
 
+//getUnitOpenInvAndReceipts
 showSyncStatusRouter.get(
   "/getUnitOpenInvAndReceipts/:getName",
   async (req, res, next) => {
     const getName = req.params.getName;
+    console.log("unit", getName);
     const responseData = [];
     try {
       const cmdInvList = await dailyReportQuery01(
@@ -133,6 +135,7 @@ showSyncStatusRouter.get(
   }
 );
 
+//getHoOpenInvAndReceipts
 showSyncStatusRouter.get(
   "/getHoOpenInvAndReceipts/:getName",
   async (req, res, next) => {

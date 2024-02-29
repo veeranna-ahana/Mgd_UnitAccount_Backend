@@ -142,20 +142,33 @@ dailyReportRouter.post("/salesInvoice", async (req, res, next) => {
 dailyReportRouter.post("/salesInvoiceDetails", async (req, res, next) => {
   const date = req.body.date;
   const id = req.body.id;
-  // console.log("idddd", id);
-  // console.log("date", date);
 
   try {
     dailyReportQuery(
-      `SELECT IF(d.DC_InvType='Job Work' AND d.taxamount>0, 'Excise Job Work', d.dc_invtype) AS InvType, 
-      t.dc_invTaxId, t.Dc_inv_No, t.DcTaxID, t.Tax_Name, t.TaxableAmount, t.TaxPercent, t.TaxAmt, t1.AcctHead, m.UnitName, t.dc_invTaxId AS Unit_UId, t.Sync_HOId AS UpDated 
-      FROM magodmis.draft_dc_inv_register d 
-      JOIN magodmis.dc_inv_taxtable t ON d.DC_Inv_No = t.Dc_inv_No
-      JOIN magodmis.taxdb t1 ON t.TaxID = t1.TaxID 
-      JOIN magod_setup.magodlaser_units m ON d.Cust_Place = m.Place 
-      WHERE d.Inv_Date='${date}' AND d.DC_Inv_No='${id}' AND m.Current;`,
+      `SELECT 
+      IF(d.DC_InvType = 'Job Work' AND d.taxamount > 0, 'Excise Job Work', d.dc_invtype) AS InvType,
+      t.dc_invTaxId,
+      t.Dc_inv_No,
+      t.DcTaxID,
+      t.Tax_Name,
+      t.TaxableAmount,
+      t.TaxPercent,
+      t.TaxAmt,
+      t1.AcctHead,
+      m.UnitName,
+      t.dc_invTaxId AS Unit_UId,
+      t.Sync_HOId AS UpDated
+  FROM 
+      magodmis.draft_dc_inv_register d
+  JOIN 
+      magodmis.dc_inv_taxtable t ON d.DC_Inv_No = t.dc_inv_no
+  JOIN 
+      magodmis.taxdb t1 ON t.TaxID = t1.TaxID
+  JOIN 
+      magod_setup.magodlaser_units m ON m.Current
+  WHERE 
+      d.inv_date = '${date}' AND d.DC_Inv_No='${id}';`,
       (err, data) => {
-        // console.log("data", data)
         res.send(data);
       }
     );
