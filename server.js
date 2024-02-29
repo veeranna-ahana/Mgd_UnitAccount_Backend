@@ -6,6 +6,7 @@ const cors = require("cors");
 const app = express();
 app.use(bodyParser.json({ limit: "50mb" }));
 
+
 require("dotenv").config();
 
 const dailyReport = require("./helpers/dbconn.js");
@@ -77,11 +78,11 @@ const fromHOUpdateSyncRouter = require("./routes/unitAccounts/Sync/fromHoUpdate.
 app.use("/fromHoUpdate", fromHOUpdateSyncRouter);
 
 const fromHOSyncRouter = require("./routes/unitAccounts/Sync/fromHoSync.js");
-app.use("/fromHoSync", fromHOSyncRouter);
+app.use('/fromHoSync', fromHOSyncRouter)
 
 const cancellVrListRouter = require("./routes/unitAccounts/Invoice/Daily/cancellVrList.js");
-app.use("/cancelVrList", cancellVrListRouter);
+app.use('/cancelVrList', cancellVrListRouter)
 
-// const userRouter = require("./routes/user");
-const userRouter = require("./routes/unitAccounts/user.js");
+
+const userRouter = require("./routes/user");
 app.use("/user", userRouter);
