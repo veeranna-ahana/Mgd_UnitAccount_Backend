@@ -394,6 +394,5 @@ monthlyReportRouter.post("/customerValueAddtion", async (req, res, next) => {
   }
 });
 
-// //AND Cust_Name = 'BHARAT ELECTRONICS LIMITED'
 
 module.exports = monthlyReportRouter;
