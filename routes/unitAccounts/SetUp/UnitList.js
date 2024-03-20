@@ -16,7 +16,7 @@ console.log();
                 console.log("err in query", err);
             }
             else {
-             //console.log("data", data);
+             
                 return res.json({ Status: 'Success', Result: data });
             }
 
