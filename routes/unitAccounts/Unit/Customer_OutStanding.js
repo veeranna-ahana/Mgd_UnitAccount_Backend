@@ -1,14 +1,26 @@
 const customerOutstanding = require("express").Router();
 // const cors = require('cors');
 // const { dbco, dbco1, dbgetData, deleteUnitData, updateUnitData } = require("../../../helpers/dbconn")
-const { setupQueryMod } = require("../../../helpers/dbconn")
-var bodyParser = require('body-parser')
+const { setupQueryMod } = require("../../../helpers/dbconn");
+var bodyParser = require("body-parser");
 
+customerOutstanding.get("/unitNames", (req, res) => {
+  const sql = `SELECT DISTINCT UnitName FROM magod_setup.magodlaser_units;`;
+  setupQueryMod(sql, (err, result) => {
+    if (err) {
+      console.log("err in query", err);
+    } else {
+      console.log("success unit names", result.length);
+      return res.json({ Result: result });
+    }
+  });
+});
 
+customerOutstanding.get("/unitOutstandingData", (req, res) => {
+  const unitname = req.query.unitname;
+  console.log("uu", unitname);
 
-customerOutstanding.get('/unitOutstandingData', (req, res) => {
-
-    const sqlQ = `
+  const sqlQ = `
         SELECT @UnitName AS UnitName, u.*, a.OutStandingInvoiceCount, a.OutStandingAmount
         FROM magodmis.cust_data u
         INNER JOIN (
@@ -25,10 +37,29 @@ customerOutstanding.get('/unitOutstandingData', (req, res) => {
         ) AS a ON a.\`Cust_Code\` = u.\`Cust_Code\` ;
     `;
 
-    // Both queries are same i make some changes based on my requriment
+  // Both queries are same i make some changes based on my requriment
 
-    const UnitNameQuery = `
-    SELECT 'Jigani' AS UnitName, u.*, a.OutStandingInvoiceCount, a.OutStandingAmount
+  //   const UnitNameQuery = `
+  //     SELECT 'Jigani' AS UnitName, u.*, a.OutStandingInvoiceCount, a.OutStandingAmount
+  //     FROM magodmis.cust_data u
+  //     INNER JOIN (
+  //         SELECT
+  //             COUNT(u.\`Cust_Code\`) AS OutStandingInvoiceCount,
+  //             SUM(u.\`GrandTotal\` - u.\`PymtAmtRecd\`) AS OutStandingAmount,
+  //             u.\`Cust_Code\`
+  //         FROM magodmis.draft_Dc_Inv_Register u
+  //         WHERE u.\`GrandTotal\` - u.\`PymtAmtRecd\` > 0
+  //             AND u.\`DCStatus\` NOT LIKE 'Closed'
+  //             AND u.\`Inv_No\` IS NOT NULL
+
+  //         GROUP BY u.\`Cust_Code\`
+  //     ) AS a ON a.\`Cust_Code\` = u.\`Cust_Code\`
+  //     WHERE   'Jigani' = (SELECT UnitName FROM magod_setup.magodlaser_units WHERE UnitName = 'Jigani');
+
+  // `;
+
+  const UnitNameQuery = `
+    SELECT '${unitname}' AS UnitName, u.*, a.OutStandingInvoiceCount, a.OutStandingAmount
     FROM magodmis.cust_data u
     INNER JOIN (
         SELECT
@@ -42,285 +73,49 @@ customerOutstanding.get('/unitOutstandingData', (req, res) => {
               
         GROUP BY u.\`Cust_Code\`
     ) AS a ON a.\`Cust_Code\` = u.\`Cust_Code\` 
-    WHERE   'Jigani' = (SELECT UnitName FROM magod_setup.magodlaser_units WHERE UnitName = 'Jigani');
+    WHERE   '${unitname}'  = (SELECT UnitName FROM magod_setup.magodlaser_units WHERE UnitName = '${unitname}' );
     
 `;
 
-    setupQueryMod(UnitNameQuery, (err, result) => {
-        if (err) {
-            console.log("err in query", err);
-        }
-        else {
-            //  console.log("success", result);
-            return res.json({ Result: result });
-        }
-    })
+  setupQueryMod(UnitNameQuery, (err, result) => {
+    if (err) {
+      console.log("err in query", err);
+    } else {
+      //  console.log("success", result);
+      return res.json({ Result: result });
+    }
+  });
 });
 
-
-
-
-customerOutstanding.get('/getCustomers', (req, res) => {
-    const sql = `SELECT DISTINCT Cust_Code, Cust_name FROM magodmis.cust_data `;
-    //  const sql=`
-    // SELECT DISTINCT Cust_Code , Cust_Name FROM magodmis.draft_dc_inv_register `;
-    setupQueryMod(sql, (err, result) => {
-        if (err) {
-            console.log("err in query", err);
-        }
-        else {
-            // console.log("cust sql query 500 change", result);
-            return res.json({ Result: result });
-        }
-    })
-})
-
-
-
-
-
-// customerOutstanding.get('/getDataBasedOnCustomer', (req, res) => {
-//     const custcode = req.query.selectedCustCode;
-//     const selectedDCType = req.query.selectedDCType;
-//     const invoiceFor = req.query.flag;
-//     console.log("dctype", invoiceFor, selectedDCType, custcode);
-//     // console.log("cust_code backend 33333333333 ", custcode);
-
-
-//     if (custcode === '0' && (selectedDCType !== '' || invoiceFor !== '')) {
-//         return res.json({ Result: "customer err" });
-//     }
-
-
-//     if (selectedDCType !== '' && invoiceFor === '') {
-
-
-//         if (selectedDCType === 'ALL') {
-//             console.log("hiiioioo");
-
-
-//             const sql2 = `SELECT
-//     u.PO_NO,
-//     @UnitName AS UnitName,
-//      u.*,
-//     SUM(u.GrandTotal - u.PymtAmtRecd) OVER (PARTITION BY u.PO_NO) AS Balance,
-//     DATEDIFF(CURRENT_DATE(), MAX(u.inv_date) OVER (PARTITION BY u.PO_NO)) AS duedays,
-//     MAX(DATE_FORMAT(DATE(u.DC_inv_Date), '%d-%m-%Y')) OVER (PARTITION BY u.PO_NO) AS Formatted_DC_inv_Date,
-//     MAX(DATE_FORMAT(DATE(u.OrderDate), '%d-%m-%Y')) OVER (PARTITION BY u.PO_NO) AS Formatted_OrderDate,
-//     MAX(DATE_FORMAT(DATE(u.DC_Date), '%d-%m-%Y')) OVER (PARTITION BY u.PO_NO) AS Formatted_DC_Date,
-//     MAX(DATE_FORMAT(DATE(u.Inv_Date), '%d-%m-%Y')) OVER (PARTITION BY u.PO_NO) AS Formatted_Inv_Date,
-//     MAX(DATE_FORMAT(DATE(u.PaymentDate), '%d-%m-%Y')) OVER (PARTITION BY u.PO_NO) AS Formatted_PaymentDate,
-//     MAX(DATE_FORMAT(DATE(u.DespatchDate), '%d-%m-%Y')) OVER (PARTITION BY u.PO_NO) AS Formatted_DespatchDate,
-//     MAX(DATE_FORMAT(DATE(u.PO_Date), '%d-%m-%Y')) OVER (PARTITION BY u.PO_NO) AS Formatted_PO_Date,
-//     MAX(DATE_FORMAT(DATE(u.DespatchTime), '%d-%m-%Y')) OVER (PARTITION BY u.PO_NO) AS Formatted_DespatchTime,
-//     (SELECT SUM(GrandTotal) FROM magodmis.draft_dc_inv_register WHERE Cust_Code = '${custcode}' AND Inv_No IS NOT NULL AND dcstatus NOT LIKE 'Closed' AND PO_NO = u.PO_NO) AS Amount_Due
-// FROM magodmis.draft_dc_inv_register u
-// WHERE    
-//     u.Cust_Code = '${custcode}'
-//     AND u.Inv_No IS NOT NULL
-//     AND u.dcstatus NOT LIKE 'Closed';`
-
-
-//             setupQueryMod(sql2, (err, result) => {
-//                 if (err) {
-//                     console.log("err in query", err);
-//                 }
-//                 else {
-//                       console.log("cust code result1111111", result);
-//                     return res.json({ Result: result });
-//                 }
-//             })
-//         }
-
-
-
-
-
-//         else {
-
-
-//             const sql2 = `SELECT
-//     u.PO_NO,
-//     @UnitName AS UnitName,
-//      u.*,
-//     SUM(u.GrandTotal - u.PymtAmtRecd) OVER (PARTITION BY u.PO_NO) AS Balance,
-//     DATEDIFF(CURRENT_DATE(), MAX(u.inv_date) OVER (PARTITION BY u.PO_NO)) AS duedays,
-//     MAX(DATE_FORMAT(DATE(u.DC_inv_Date), '%d-%m-%Y')) OVER (PARTITION BY u.PO_NO) AS Formatted_DC_inv_Date,
-//     MAX(DATE_FORMAT(DATE(u.OrderDate), '%d-%m-%Y')) OVER (PARTITION BY u.PO_NO) AS Formatted_OrderDate,
-//     MAX(DATE_FORMAT(DATE(u.DC_Date), '%d-%m-%Y')) OVER (PARTITION BY u.PO_NO) AS Formatted_DC_Date,
-//     MAX(DATE_FORMAT(DATE(u.Inv_Date), '%d-%m-%Y')) OVER (PARTITION BY u.PO_NO) AS Formatted_Inv_Date,
-//     MAX(DATE_FORMAT(DATE(u.PaymentDate), '%d-%m-%Y')) OVER (PARTITION BY u.PO_NO) AS Formatted_PaymentDate,
-//     MAX(DATE_FORMAT(DATE(u.DespatchDate), '%d-%m-%Y')) OVER (PARTITION BY u.PO_NO) AS Formatted_DespatchDate,
-//     MAX(DATE_FORMAT(DATE(u.PO_Date), '%d-%m-%Y')) OVER (PARTITION BY u.PO_NO) AS Formatted_PO_Date,
-//     MAX(DATE_FORMAT(DATE(u.DespatchTime), '%d-%m-%Y')) OVER (PARTITION BY u.PO_NO) AS Formatted_DespatchTime,
-//     (SELECT SUM(GrandTotal) FROM magodmis.draft_dc_inv_register WHERE Cust_Code = '${custcode}' AND Inv_No IS NOT NULL AND dcstatus NOT LIKE 'Closed' AND PO_NO = u.PO_NO) AS Amount_Due
-// FROM magodmis.draft_dc_inv_register u
-// WHERE     u.DC_InvType='${selectedDCType}' AND 
-//     u.Cust_Code = '${custcode}'
-//     AND u.Inv_No IS NOT NULL
-//     AND u.dcstatus NOT LIKE 'Closed';`
-//             setupQueryMod(sql2, (err, result) => {
-//                 if (err) {
-//                     console.log("err in query", err);
-//                 }
-//                 else {
-//                     //  console.log("cust code result2222", result);
-//                     return res.json({ Result: result });
-//                 }
-//             })
-//         }
-
-//     }
-
-
-
-//     else if (selectedDCType !== '' && invoiceFor !== '') {
-
-//         console.log("invoice for empty");
-
-//         if (invoiceFor === 'ALL') {
-
-//             const sql2 = `SELECT
-//     u.PO_NO,
-//     @UnitName AS UnitName,
-//      u.*,
-//     SUM(u.GrandTotal - u.PymtAmtRecd) OVER (PARTITION BY u.PO_NO) AS Balance,
-//     DATEDIFF(CURRENT_DATE(), MAX(u.inv_date) OVER (PARTITION BY u.PO_NO)) AS duedays,
-//     MAX(DATE_FORMAT(DATE(u.DC_inv_Date), '%d-%m-%Y')) OVER (PARTITION BY u.PO_NO) AS Formatted_DC_inv_Date,
-//     MAX(DATE_FORMAT(DATE(u.OrderDate), '%d-%m-%Y')) OVER (PARTITION BY u.PO_NO) AS Formatted_OrderDate,
-//     MAX(DATE_FORMAT(DATE(u.DC_Date), '%d-%m-%Y')) OVER (PARTITION BY u.PO_NO) AS Formatted_DC_Date,
-//     MAX(DATE_FORMAT(DATE(u.Inv_Date), '%d-%m-%Y')) OVER (PARTITION BY u.PO_NO) AS Formatted_Inv_Date,
-//     MAX(DATE_FORMAT(DATE(u.PaymentDate), '%d-%m-%Y')) OVER (PARTITION BY u.PO_NO) AS Formatted_PaymentDate,
-//     MAX(DATE_FORMAT(DATE(u.DespatchDate), '%d-%m-%Y')) OVER (PARTITION BY u.PO_NO) AS Formatted_DespatchDate,
-//     MAX(DATE_FORMAT(DATE(u.PO_Date), '%d-%m-%Y')) OVER (PARTITION BY u.PO_NO) AS Formatted_PO_Date,
-//     MAX(DATE_FORMAT(DATE(u.DespatchTime), '%d-%m-%Y')) OVER (PARTITION BY u.PO_NO) AS Formatted_DespatchTime,
-//     (SELECT SUM(GrandTotal) FROM magodmis.draft_dc_inv_register WHERE Cust_Code = '${custcode}' AND Inv_No IS NOT NULL AND dcstatus NOT LIKE 'Closed' AND PO_NO = u.PO_NO) AS Amount_Due
-// FROM magodmis.draft_dc_inv_register u
-// WHERE     u.DC_InvType='${selectedDCType}' AND 
-//     u.Cust_Code = '${custcode}'
-//     AND u.Inv_No IS NOT NULL
-//     AND u.dcstatus NOT LIKE 'Closed';`
-
-//             setupQueryMod(sql2, (err, result) => {
-//                 if (err) {
-//                     console.log("err in query", err);
-//                 }
-//                 else {
-//                     // console.log("cust code result4444", result);
-//                     return res.json({ Result: result });
-//                 }
-//             })
-
-//         }
-
-
-
-
-
-//         else if (selectedDCType === 'Sales & Jobwork') {
-
-//             const sql2 = `SELECT
-//     u.PO_NO,
-//     @UnitName AS UnitName,
-//      u.*,
-//     SUM(u.GrandTotal - u.PymtAmtRecd) OVER (PARTITION BY u.PO_NO) AS Balance,
-//     DATEDIFF(CURRENT_DATE(), MAX(u.inv_date) OVER (PARTITION BY u.PO_NO)) AS duedays,
-//     MAX(DATE_FORMAT(DATE(u.DC_inv_Date), '%d-%m-%Y')) OVER (PARTITION BY u.PO_NO) AS Formatted_DC_inv_Date,
-//     MAX(DATE_FORMAT(DATE(u.OrderDate), '%d-%m-%Y')) OVER (PARTITION BY u.PO_NO) AS Formatted_OrderDate,
-//     MAX(DATE_FORMAT(DATE(u.DC_Date), '%d-%m-%Y')) OVER (PARTITION BY u.PO_NO) AS Formatted_DC_Date,
-//     MAX(DATE_FORMAT(DATE(u.Inv_Date), '%d-%m-%Y')) OVER (PARTITION BY u.PO_NO) AS Formatted_Inv_Date,
-//     MAX(DATE_FORMAT(DATE(u.PaymentDate), '%d-%m-%Y')) OVER (PARTITION BY u.PO_NO) AS Formatted_PaymentDate,
-//     MAX(DATE_FORMAT(DATE(u.DespatchDate), '%d-%m-%Y')) OVER (PARTITION BY u.PO_NO) AS Formatted_DespatchDate,
-//     MAX(DATE_FORMAT(DATE(u.PO_Date), '%d-%m-%Y')) OVER (PARTITION BY u.PO_NO) AS Formatted_PO_Date,
-//     MAX(DATE_FORMAT(DATE(u.DespatchTime), '%d-%m-%Y')) OVER (PARTITION BY u.PO_NO) AS Formatted_DespatchTime,
-//     (SELECT SUM(GrandTotal) FROM magodmis.draft_dc_inv_register WHERE Cust_Code = '${custcode}' AND Inv_No IS NOT NULL AND dcstatus NOT LIKE 'Closed' AND PO_NO = u.PO_NO) AS Amount_Due
-// FROM magodmis.draft_dc_inv_register u
-// WHERE    u.DC_InvType IN ('Sales', 'Job Work')   AND u.InvoiceFor='${invoiceFor}' AND 
-//     u.Cust_Code = '${custcode}'
-//     AND u.Inv_No IS NOT NULL
-//     AND u.dcstatus NOT LIKE 'Closed';`
-
-//             setupQueryMod(sql2, (err, result) => {
-//                 if (err) {
-//                     console.log("err in query", err);
-//                 }
-//                 else {
-//                     // console.log("sales and jobwork", result);
-//                     return res.json({ Result: result });
-//                 }
-//             })
-//         }
-
-
-
-
-
-
-//         else {
-
-
-
-
-//             const sql2 = `SELECT
-//     u.PO_NO,
-//     @UnitName AS UnitName,
-//      u.*,
-//     SUM(u.GrandTotal - u.PymtAmtRecd) OVER (PARTITION BY u.PO_NO) AS Balance,
-//     DATEDIFF(CURRENT_DATE(), MAX(u.inv_date) OVER (PARTITION BY u.PO_NO)) AS duedays,
-//     MAX(DATE_FORMAT(DATE(u.DC_inv_Date), '%d-%m-%Y')) OVER (PARTITION BY u.PO_NO) AS Formatted_DC_inv_Date,
-//     MAX(DATE_FORMAT(DATE(u.OrderDate), '%d-%m-%Y')) OVER (PARTITION BY u.PO_NO) AS Formatted_OrderDate,
-//     MAX(DATE_FORMAT(DATE(u.DC_Date), '%d-%m-%Y')) OVER (PARTITION BY u.PO_NO) AS Formatted_DC_Date,
-//     MAX(DATE_FORMAT(DATE(u.Inv_Date), '%d-%m-%Y')) OVER (PARTITION BY u.PO_NO) AS Formatted_Inv_Date,
-//     MAX(DATE_FORMAT(DATE(u.PaymentDate), '%d-%m-%Y')) OVER (PARTITION BY u.PO_NO) AS Formatted_PaymentDate,
-//     MAX(DATE_FORMAT(DATE(u.DespatchDate), '%d-%m-%Y')) OVER (PARTITION BY u.PO_NO) AS Formatted_DespatchDate,
-//     MAX(DATE_FORMAT(DATE(u.PO_Date), '%d-%m-%Y')) OVER (PARTITION BY u.PO_NO) AS Formatted_PO_Date,
-//     MAX(DATE_FORMAT(DATE(u.DespatchTime), '%d-%m-%Y')) OVER (PARTITION BY u.PO_NO) AS Formatted_DespatchTime,
-//     (SELECT SUM(GrandTotal) FROM magodmis.draft_dc_inv_register WHERE Cust_Code = '${custcode}' AND Inv_No IS NOT NULL AND dcstatus NOT LIKE 'Closed' AND PO_NO = u.PO_NO) AS Amount_Due
-// FROM magodmis.draft_dc_inv_register u
-// WHERE    u.DC_InvType IN ('Sales', 'Job Work')   AND u.InvoiceFor='${invoiceFor}' AND 
-//     u.Cust_Code = '${custcode}'
-//     AND u.Inv_No IS NOT NULL
-//     AND u.dcstatus NOT LIKE 'Closed';`
-//             setupQueryMod(sql2, (err, result) => {
-//                 if (err) {
-//                     console.log("err in query", err);
-//                 }
-//                 else {
-//                     //  console.log("cust code result4444", result);
-//                     return res.json({ Result: result });
-//                 }
-//             })
-
-//         }
-
-//     }
-
-
-
-
-// })
-
-
-customerOutstanding.get('/getDataBasedOnCustomer', (req, res) => {
-    const custcode = req.query.selectedCustCode;
-    const selectedDCType = req.query.selectedDCType;
-    const invoiceFor = req.query.flag;
-    console.log("custcode, ", custcode,);
-    console.log("dctype",  selectedDCType);
-     console.log("invoiceFor, ", invoiceFor,);
-
-    if (custcode === ' ' && (selectedDCType !== '' || invoiceFor !== '')) {
-        return res.json({ Result: "customer err" });
+customerOutstanding.get("/getCustomers", (req, res) => {
+  const sql = `SELECT DISTINCT Cust_Code, Cust_name FROM magodmis.cust_data `;
+  //  const sql=`
+  // SELECT DISTINCT Cust_Code , Cust_Name FROM magodmis.draft_dc_inv_register `;
+  setupQueryMod(sql, (err, result) => {
+    if (err) {
+      console.log("err in query", err);
+    } else {
+      // console.log("cust sql query 500 change", result);
+      return res.json({ Result: result });
     }
+  });
+});
 
+customerOutstanding.get("/getDataBasedOnCustomer", (req, res) => {
+  const custcode = req.query.selectedCustCode;
+  const selectedDCType = req.query.selectedDCType;
+  const invoiceFor = req.query.flag;
+  console.log("custcode, ", custcode);
+  console.log("dctype", selectedDCType);
+  console.log("invoiceFor, ", invoiceFor);
 
-    if (selectedDCType !== '' && invoiceFor === '') {
+  if (custcode === " " && (selectedDCType !== "" || invoiceFor !== "")) {
+    return res.json({ Result: "customer err" });
+  }
 
-
-        if (selectedDCType === 'ALL') {
-
-
-            const sql2 = `SELECT
+  if (selectedDCType !== "" && invoiceFor === "") {
+    if (selectedDCType === "ALL") {
+      const sql2 = `SELECT
 u.PO_No,
 u.Inv_No,
 @UnitName AS UnitName,
@@ -339,27 +134,17 @@ WHERE
 u.Cust_Code = '${custcode}'
 AND u.Inv_No IS NOT NULL
 AND u.dcstatus NOT LIKE 'Closed';
-`
-            setupQueryMod(sql2, (err, result) => {
-                if (err) {
-                    console.log("err in query", err);
-                }
-                else {
-                    //  console.log("cust code result1111111", result);
-                    return res.json({ Result: result });
-                }
-            })
+`;
+      setupQueryMod(sql2, (err, result) => {
+        if (err) {
+          console.log("err in query", err);
+        } else {
+          //  console.log("cust code result1111111", result);
+          return res.json({ Result: result });
         }
-
-
-
-
-
-        else {
-
-
-           
-            const sql2 = `SELECT
+      });
+    } else {
+      const sql2 = `SELECT
     u.PO_No,
     u.Inv_No,
     @UnitName AS UnitName,
@@ -378,38 +163,24 @@ AND u.dcstatus NOT LIKE 'Closed';
     u.Cust_Code = '${custcode}'
     AND u.Inv_No IS NOT NULL
     AND u.dcstatus NOT LIKE 'Closed';
-    `
+    `;
 
-    setupQueryMod(sql2, (err, result) => {
+      setupQueryMod(sql2, (err, result) => {
         if (err) {
-            console.log("err in query", err);
-        }
-        else {
-            if(result.length===0){
-                return res.json({ Result: "select dc type"});  
-            }
-            else{
-        //  console.log("cust code result2222", result);
+          console.log("err in query", err);
+        } else {
+          if (result.length === 0) {
+            return res.json({ Result: "select dc type" });
+          } else {
+            //  console.log("cust code result2222", result);
             return res.json({ Result: result });
-            }
+          }
         }
-    })
-        }
-
+      });
     }
-
-
-
-    else if (selectedDCType !== '' && invoiceFor !== '') {
-
-        
-
-        if (selectedDCType === 'Sales & Jobwork') {
-
-
-           
-
-            const sql2 = `SELECT
+  } else if (selectedDCType !== "" && invoiceFor !== "") {
+    if (selectedDCType === "Sales & Jobwork") {
+      const sql2 = `SELECT
     u.PO_No,
     u.Inv_No,
     @UnitName AS UnitName,
@@ -428,49 +199,40 @@ AND u.dcstatus NOT LIKE 'Closed';
     u.Cust_Code = '${custcode}'
     AND u.Inv_No IS NOT NULL
     AND u.dcstatus NOT LIKE 'Closed';
-    `
+    `;
 
-    setupQueryMod(sql2, (err, result) => {
+      setupQueryMod(sql2, (err, result) => {
         if (err) {
-            console.log("err in query", err);
-        }
-        else {
-            
-            if(result.length===0){
-                return res.json({ Result: "error in invoice for" });
-            }
-            else{
-      //   console.log("cust code 4", result);
+          console.log("err in query", err);
+        } else {
+          if (result.length === 0) {
+            return res.json({ Result: "error in invoice for" });
+          } else {
+            //   console.log("cust code 4", result);
             return res.json({ Result: result });
-            }
-            
+          }
         }
-    })
-        }
+      });
+    } else {
+      //         const sql2 = `SELECT
+      //     u.dc_Inv_No AS Id,
+      //     @UnitName AS UnitName,
 
+      //     u.GrandTotal - u.PymtAmtRecd AS Balance,
+      //     DATEDIFF(CURRENT_DATE(), u.inv_date) AS duedays,
+      //     u.Inv_No, u.InvoiceFor,  u.DCStatus, u.DC_InvType,u.Inv_Date, u.GrandTotal,
+      //     u.Cust_Name,u.PO_No,u.PymtAmtRecd,
+      //     (SELECT SUM(GrandTotal) FROM magodmis.draft_dc_inv_register WHERE Cust_Code = '${custcode}' AND Inv_No IS NOT NULL AND dcstatus NOT LIKE 'Closed') AS Amount_Due
+      // FROM magodmis.draft_dc_inv_register u
+      // WHERE    u.DC_InvType='${selectedDCType}'   AND u.InvoiceFor='${invoiceFor}' AND
+      //     u.Cust_Code = '${custcode}'
 
+      //     AND u.Inv_No IS NOT NULL
+      //     AND u.dcstatus NOT LIKE 'Closed';
 
-        else {
+      // `
 
-            //         const sql2 = `SELECT
-            //     u.dc_Inv_No AS Id,
-            //     @UnitName AS UnitName,
-
-            //     u.GrandTotal - u.PymtAmtRecd AS Balance,
-            //     DATEDIFF(CURRENT_DATE(), u.inv_date) AS duedays,
-            //     u.Inv_No, u.InvoiceFor,  u.DCStatus, u.DC_InvType,u.Inv_Date, u.GrandTotal,
-            //     u.Cust_Name,u.PO_No,u.PymtAmtRecd,
-            //     (SELECT SUM(GrandTotal) FROM magodmis.draft_dc_inv_register WHERE Cust_Code = '${custcode}' AND Inv_No IS NOT NULL AND dcstatus NOT LIKE 'Closed') AS Amount_Due
-            // FROM magodmis.draft_dc_inv_register u
-            // WHERE    u.DC_InvType='${selectedDCType}'   AND u.InvoiceFor='${invoiceFor}' AND 
-            //     u.Cust_Code = '${custcode}'
-
-            //     AND u.Inv_No IS NOT NULL
-            //     AND u.dcstatus NOT LIKE 'Closed';
-
-            // `
-
-            const sql2 = `SELECT
+      const sql2 = `SELECT
     u.PO_No,
     u.Inv_No,
     @UnitName AS UnitName,
@@ -489,37 +251,28 @@ AND u.dcstatus NOT LIKE 'Closed';
     u.Cust_Code = '${custcode}'
     AND u.Inv_No IS NOT NULL
     AND u.dcstatus NOT LIKE 'Closed';
-    `
+    `;
 
-    setupQueryMod(sql2, (err, result) => {
+      setupQueryMod(sql2, (err, result) => {
         if (err) {
-            console.log("err in query", err);
-        }
-        else {
-
-            if(result.length===0){
-                return res.json({ Result: "error in invoice for" });
-            }
-            else{
-        // console.log("cust code result4444", selectedDCType, );
+          console.log("err in query", err);
+        } else {
+          if (result.length === 0) {
+            return res.json({ Result: "error in invoice for" });
+          } else {
+            // console.log("cust code result4444", selectedDCType, );
             return res.json({ Result: result });
-            }
+          }
         }
-    })
-
-        }
-
+      });
     }
+  }
+});
 
-})
-
-
-
-
-customerOutstanding.get('/getDataTable2', (req, res) => {
-    const DC_Inv_No = req.query.selectedDCInvNo;
-    console.log("DC_INV_NO", DC_Inv_No);
-    const sql = `SELECT CONCAT('HO/', h1.HORef) AS VrRef, h.Receive_Now, h1.TxnType, h1.Status AS VrStatus
+customerOutstanding.get("/getDataTable2", (req, res) => {
+  const DC_Inv_No = req.query.selectedDCInvNo;
+  console.log("DC_INV_NO", DC_Inv_No);
+  const sql = `SELECT CONCAT('HO/', h1.HORef) AS VrRef, h.Receive_Now, h1.TxnType, h1.Status AS VrStatus
         FROM magodmis.ho_paymentrv_details h
         JOIN magodmis.ho_paymentrv_register h1 ON h.HOPrvId = h1.HOPrvId
         WHERE h.Dc_inv_no = '${DC_Inv_No}'
@@ -530,31 +283,26 @@ customerOutstanding.get('/getDataTable2', (req, res) => {
         WHERE u.Dc_inv_no = '${DC_Inv_No}';
         `;
 
-    setupQueryMod(sql, (err, result) => {
-        if (err) {
-            console.log("err in query", err);
-        }
-        else {
-            //  console.log("DC_Inv_no result", result);
-            return res.json({ Result: result });
-        }
-    })
-})
+  setupQueryMod(sql, (err, result) => {
+    if (err) {
+      console.log("err in query", err);
+    } else {
+      //  console.log("DC_Inv_no result", result);
+      return res.json({ Result: result });
+    }
+  });
+});
 
-
-customerOutstanding.get('/getDCTypes', (req, res) => {
-
-
-    const sql = `SELECT  DISTINCT DC_InvType FROM magodmis.draft_dc_inv_register `
-    setupQueryMod(sql, (err, result) => {
-        if (err) {
-            console.log("err in query", err);
-        }
-        else {
-            //console.log("DC_Inv_type", result);
-            return res.json({ Result: result });
-        }
-    })
-})
+customerOutstanding.get("/getDCTypes", (req, res) => {
+  const sql = `SELECT  DISTINCT DC_InvType FROM magodmis.draft_dc_inv_register `;
+  setupQueryMod(sql, (err, result) => {
+    if (err) {
+      console.log("err in query", err);
+    } else {
+      //console.log("DC_Inv_type", result);
+      return res.json({ Result: result });
+    }
+  });
+});
 
 module.exports = customerOutstanding;
