@@ -11,7 +11,6 @@ unitlist.get("/getUnitData", (req, res, next) => {
       if (err) {
         console.log("err in query", err);
       } else {
-        console.log("unit");
         return res.json({ Status: "Success", Result: data });
       }
     });
