@@ -37,27 +37,6 @@ customerOutstanding.get("/unitOutstandingData", (req, res) => {
         ) AS a ON a.\`Cust_Code\` = u.\`Cust_Code\` ;
     `;
 
-  // Both queries are same i make some changes based on my requriment
-
-  //   const UnitNameQuery = `
-  //     SELECT 'Jigani' AS UnitName, u.*, a.OutStandingInvoiceCount, a.OutStandingAmount
-  //     FROM magodmis.cust_data u
-  //     INNER JOIN (
-  //         SELECT
-  //             COUNT(u.\`Cust_Code\`) AS OutStandingInvoiceCount,
-  //             SUM(u.\`GrandTotal\` - u.\`PymtAmtRecd\`) AS OutStandingAmount,
-  //             u.\`Cust_Code\`
-  //         FROM magodmis.draft_Dc_Inv_Register u
-  //         WHERE u.\`GrandTotal\` - u.\`PymtAmtRecd\` > 0
-  //             AND u.\`DCStatus\` NOT LIKE 'Closed'
-  //             AND u.\`Inv_No\` IS NOT NULL
-
-  //         GROUP BY u.\`Cust_Code\`
-  //     ) AS a ON a.\`Cust_Code\` = u.\`Cust_Code\`
-  //     WHERE   'Jigani' = (SELECT UnitName FROM magod_setup.magodlaser_units WHERE UnitName = 'Jigani');
-
-  // `;
-
   const UnitNameQuery = `
     SELECT '${unitname}' AS UnitName, u.*, a.OutStandingInvoiceCount, a.OutStandingAmount
     FROM magodmis.cust_data u
@@ -139,7 +118,7 @@ AND u.dcstatus NOT LIKE 'Closed';
         if (err) {
           console.log("err in query", err);
         } else {
-          //  console.log("cust code result1111111", result);
+          console.log("cust code result1 alllll", result);
           return res.json({ Result: result });
         }
       });
