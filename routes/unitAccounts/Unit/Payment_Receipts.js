@@ -1,11 +1,13 @@
-
-
-
 const paymentreceipts = require("express").Router();
 // const cors = require('cors');
 // const { dbco, dbco1, dbgetData, deleteUnitData, updateUnitData } = require("../../../helpers/dbconn")
 const { setupQueryMod } = require("../../../helpers/dbconn");
 var bodyParser = require("body-parser");
+
+function formatDate(dateStr) {
+  const [day, month, year] = dateStr.split("-");
+  return `${year}-${month}-${day}`;
+}
 
 paymentreceipts.get("/getcustomerdata", (req, res) => {
   const sql = "SELECT Cust_Code, Cust_name FROM magodmis.cust_data";
@@ -21,7 +23,9 @@ paymentreceipts.get("/getcustomerdata", (req, res) => {
 });
 
 paymentreceipts.post("/saveReceipt", (req, res) => {
-  console.log("qqqqqqqqqq", req.body.Amount, req.body.On_account);
+  console.log("qqqqqqqqqq", req.body.Recd_PV_Date);
+  const newdate = formatDate(req.body.Recd_PV_Date);
+
   if (req.body.RecdPVID != "") {
     if (req.body.Amount == "") {
       amount = 0.0;
@@ -56,17 +60,7 @@ paymentreceipts.post("/saveReceipt", (req, res) => {
         }
       }
     );
-  }
-  else {
-    const formatDate = (dateString) => {
-      const date = new Date(dateString);
-      const year = date.getFullYear();
-      const month = String(date.getMonth() + 1).padStart(2, "0");
-      const day = String(date.getDate()).padStart(2, "0");
-      return `${year}-${month}-${day}`;
-    };
-
-    // console.log("formatDate", formatDate);
+  } else {
     //Check if the data already exists in the database
     setupQueryMod(
       "SELECT RecdPVID FROM magodmis.payment_recd_voucher_register",
@@ -80,14 +74,14 @@ paymentreceipts.post("/saveReceipt", (req, res) => {
         const sqlpost =
           "INSERT INTO magodmis.payment_recd_voucher_register(Recd_PV_Date, Cust_code, CustName, TxnType, Amount, Description, ReceiptStatus,On_account) VALUES (?   )";
         const values = [
-          formatDate(req.body.Recd_PV_Date),
+          newdate,
           req.body.Cust_code,
           req.body.CustName,
           req.body.TxnType,
           amount,
           req.body.Description,
           req.body.ReceiptStatus,
-          req.body.On_account
+          req.body.On_account,
         ];
         //console.log("values", values);
         setupQueryMod(sqlpost, [values], (err, result) => {
@@ -104,117 +98,6 @@ paymentreceipts.post("/saveReceipt", (req, res) => {
     );
   }
 });
-
-
-
-
-
-// paymentreceipts.put("/postReceipt/:RecdPVID", (req, res) => {
-//   const id = req.params.RecdPVID;
-//   const date = new Date();
-//   //  console.log("post button", id);
-//   const getFinancialYear = () => {
-//     const year = date.getFullYear();
-//     const startYear = date.getMonth() >= 3 ? year : year - 1;
-//     const financialYearStartDate = new Date(`${startYear}-04-01`);
-//     // console.log(financialYearStartDate)
-//     return financialYearStartDate;
-//   };
-//   const getFinanYear = () => {
-//     const year = date.getFullYear();
-//     const incrementedResult = "";
-//     const getYear =
-//       date.getMonth() >= 3 ? `${year}-${year + 1}` : `${year - 1}-${year}`;
-//     console.log(getYear, "startYear");
-//     const yearParts = getYear.split("-");
-//     console.log(yearParts);
-//     const startYear = yearParts[0].slice(-2);
-//     const endYear = yearParts[1].slice(-2);
-//     const financialYearStartDate = `${startYear}/${endYear} / 0001`;
-//     //  console.log(financialYearStartDate)
-//     return financialYearStartDate;
-//   };
-//   function incrementFormattedString(inputString) {
-//     const parts = inputString.split(" / ");
-//     const numericPart = parts[1]; // Assuming the numeric part is always at index 2
-//     const numericValue = parseInt(numericPart);
-//     const incrementedNumericValue = numericValue + 1;
-//     const formattedNumericValue = incrementedNumericValue
-//       .toString()
-//       .padStart(numericPart.length, "0");
-//     const result = `${parts[0]} / ${formattedNumericValue}`;
-//     return result;
-//   }
-//   const query = `
-//             SELECT Recd_PVNo as last_row_count
-//             FROM magodmis.payment_recd_voucher_register 
-//             WHERE Recd_PV_Date >= ? AND Recd_PV_Date <= ? AND Recd_PVNo!='Draft' ORDER BY RecdPVID DESC LIMIT 1
-//             `;
-
-//   const financialYear = getFinancialYear();
-
-//   setupQueryMod(query, [financialYear, date], (error, results) => {
-//     console.log(results);
-//     if (error) {
-//       console.error(error);
-//       return;
-//     }
-//     if (results.length == 0) {
-//       incrementedResult = getFinanYear();
-//       // console.log(incrementedResult);
-//     } else {
-//       const lastRowCount = results[0].last_row_count;
-//       // console.log('Last row count:', lastRowCount);
-//       incrementedResult = incrementFormattedString(lastRowCount);
-//       // console.log(incrementedResult); // Output: '23/24 / 0003'
-//     }
-
-//     const updat = `UPDATE magodmis.payment_recd_voucher_register  p SET p.Recd_PVNo='${incrementedResult}', p.Recd_PV_Date=current_date(), p.ReceiptStatus=If('${parseFloat(
-//       req.body.receipt_data.On_account
-//     )}'=0,"Closed","Open") WHERE p.RecdPVID='${id}';`;
-
-//     setupQueryMod(updat, [id], (e, r) => {
-//       if (e) {
-//         console.log(e);
-//         return res.json({ Status: "Error", Error: "Failed to update" });
-//       }
-
-//       const data = `SELECT Receive_Now, Dc_inv_no FROM magodmis.payment_recd_voucher_details WHERE RecdPVID='${id}';`;
-//       setupQueryMod(data, (err, result) => {
-//         if (err) {
-//           console.log(err);
-//           return res.json({ Status: "Error", Error: "Failed to fetch data" });
-//         }
-
-//         const updateDCStatus = (i) => {
-//           if (i >= result.length) {
-//             return res.json({ Status: "Success", result: result });
-//           }
-
-//           const dc_inv_no = result[i].Dc_inv_no;
-//           setupQueryMod(
-//             `UPDATE magodmis.draft_dc_inv_register d SET d.PymtAmtRecd=d.PymtAmtRecd+'${result[i].Receive_Now}', d.DCStatus=If( d.GrandTotal=d.PymtAmtRecd,'Closed','Despatched') WHERE  d.DC_Inv_No='${dc_inv_no}'`,
-//             (updateErr, updateRes) => {
-//               if (updateErr) {
-//                 //  console.log(updateErr);
-//                 return res.json({
-//                   Status: "Error",
-//                   Error: "Failed to update DC status",
-//                 });
-//               }
-
-//               updateDCStatus(i + 1);
-//             }
-//           );
-//         };
-
-//         updateDCStatus(0);
-//       });
-//     });
-//   });
-// });
-
-
 
 paymentreceipts.put("/postReceipt/:RecdPVID", (req, res) => {
   const id = req.params.RecdPVID;
@@ -238,153 +121,90 @@ paymentreceipts.put("/postReceipt/:RecdPVID", (req, res) => {
     SELECT * FROM magod_setup.magod_runningno WHERE SrlType='${srlType}' AND UnitName='${unit}' ORDER BY Id DESC LIMIT 1;
     `;
 
-    setupQueryMod(selectQuery, async(selectError, selectResult)=>{
-if(selectError){
+    setupQueryMod(selectQuery, async (selectError, selectResult) => {
+      if (selectError) {
+      } else {
+        console.log("select result", selectResult);
+        if (selectResult && selectResult.length > 0) {
+          const lastRunNo = selectResult[0].Running_No;
+          const period = selectResult[0].Period;
+          const numericPart = parseInt(lastRunNo) + 1;
 
-}
-else{
-  console.log("select result",selectResult);
-  if (selectResult && selectResult.length > 0) {
-    const lastRunNo = selectResult[0].Running_No;
-    const period=selectResult[0].Period;
-    const numericPart = parseInt(lastRunNo) + 1;
+          const paddedNumericPart = numericPart.toString().padStart(4, "0");
 
-    const paddedNumericPart = numericPart.toString().padStart(4, "0");
+          newHrefNo = `${period}/ ${paddedNumericPart}`;
+          console.log("New HrefNo:", newHrefNo);
 
-    newHrefNo = `${period}/ ${paddedNumericPart}`;
-    console.log("New HrefNo:", newHrefNo);
-
-    // Update Running_No in magod_setup.magod_runningno
-    const updateRunningNoQuery = `
+          // Update Running_No in magod_setup.magod_runningno
+          const updateRunningNoQuery = `
       UPDATE magod_setup.magod_runningno
       SET Running_No = ${numericPart}
       WHERE SrlType='${srlType}' AND UnitName='${unit}' AND Period='${finYear}' AND Running_EffectiveDate = CURDATE();
     `;
 
-    setupQueryMod(updateRunningNoQuery, (updateError, updateResult) => {
-      if (updateError) {
-        logger.error(updateError);
-        return next(updateResult);
-      }
-      else{
-        const updat = `UPDATE magodmis.payment_recd_voucher_register  p SET p.Recd_PVNo='${newHrefNo}', p.Recd_PV_Date=current_date(), p.ReceiptStatus=If('${parseFloat(
-          req.body.data.receipt_data.On_account
-        )}'=0,"Closed","Open") WHERE p.RecdPVID='${id}';`;
-    
-        setupQueryMod(updat, [id], (e, r) => {
-          if (e) {
-            console.log(e);
-            return res.json({ Status: "Error", Error: "Failed to update" });
-          }
-    
-          const data = `SELECT Receive_Now, Dc_inv_no FROM magodmis.payment_recd_voucher_details WHERE RecdPVID='${id}';`;
-          setupQueryMod(data, (err, result) => {
-            if (err) {
-              console.log(err);
-              return res.json({ Status: "Error", Error: "Failed to fetch data" });
-            }
-    
-            const updateDCStatus = (i) => {
-              if (i >= result.length) {
-                return res.json({ Status: "Success", result: result });
-              }
-    
-              const dc_inv_no = result[i].Dc_inv_no;
-              setupQueryMod(
-                `UPDATE magodmis.draft_dc_inv_register d SET d.PymtAmtRecd=d.PymtAmtRecd+'${result[i].Receive_Now}', d.DCStatus=If( d.GrandTotal=d.PymtAmtRecd,'Closed','Despatched') WHERE  d.DC_Inv_No='${dc_inv_no}'`,
-                (updateErr, updateRes) => {
-                  if (updateErr) {
-                    //  console.log(updateErr);
+          setupQueryMod(updateRunningNoQuery, (updateError, updateResult) => {
+            if (updateError) {
+              logger.error(updateError);
+              return next(updateResult);
+            } else {
+              const updat = `UPDATE magodmis.payment_recd_voucher_register  p SET p.Recd_PVNo='${newHrefNo}', p.Recd_PV_Date=current_date(), p.ReceiptStatus=If('${parseFloat(
+                req.body.data.receipt_data.On_account
+              )}'=0,"Closed","Open") WHERE p.RecdPVID='${id}';`;
+
+              setupQueryMod(updat, [id], (e, r) => {
+                if (e) {
+                  console.log(e);
+                  return res.json({
+                    Status: "Error",
+                    Error: "Failed to update",
+                  });
+                }
+
+                const data = `SELECT Receive_Now, Dc_inv_no FROM magodmis.payment_recd_voucher_details WHERE RecdPVID='${id}';`;
+                setupQueryMod(data, (err, result) => {
+                  if (err) {
+                    console.log(err);
                     return res.json({
                       Status: "Error",
-                      Error: "Failed to update DC status",
+                      Error: "Failed to fetch data",
                     });
                   }
-    
-                  updateDCStatus(i + 1);
-                }
-              );
-            };
-    
-            updateDCStatus(0);
+
+                  const updateDCStatus = (i) => {
+                    if (i >= result.length) {
+                      return res.json({ Status: "Success", result: result });
+                    }
+
+                    const dc_inv_no = result[i].Dc_inv_no;
+                    setupQueryMod(
+                      `UPDATE magodmis.draft_dc_inv_register d SET d.PymtAmtRecd=d.PymtAmtRecd+'${result[i].Receive_Now}', d.DCStatus=If( d.GrandTotal=d.PymtAmtRecd,'Closed','Despatched') WHERE  d.DC_Inv_No='${dc_inv_no}'`,
+                      (updateErr, updateRes) => {
+                        if (updateErr) {
+                          //  console.log(updateErr);
+                          return res.json({
+                            Status: "Error",
+                            Error: "Failed to update DC status",
+                          });
+                        }
+
+                        updateDCStatus(i + 1);
+                      }
+                    );
+                  };
+
+                  updateDCStatus(0);
+                });
+              });
+            }
           });
-        });
+        }
       }
     });
-  }
-}
-
-    })
-  }
-  catch (error) {
+  } catch (error) {
     console.error("An error occurred:", error);
     next(error);
-
   }
-
-
-  // setupQueryMod(query, [financialYear, date], (error, results) => {
-  //   console.log(results);
-  //   if (error) {
-  //     console.error(error);
-  //     return;
-  //   }
-  //   if (results.length == 0) {
-  //     incrementedResult = getFinanYear();
-  //     // console.log(incrementedResult);
-  //   } else {
-  //     const lastRowCount = results[0].last_row_count;
-  //     // console.log('Last row count:', lastRowCount);
-  //     incrementedResult = incrementFormattedString(lastRowCount);
-  //     // console.log(incrementedResult); // Output: '23/24 / 0003'
-  //   }
-
-  //   const updat = `UPDATE magodmis.payment_recd_voucher_register  p SET p.Recd_PVNo='${incrementedResult}', p.Recd_PV_Date=current_date(), p.ReceiptStatus=If('${parseFloat(
-  //     req.body.receipt_data.On_account
-  //   )}'=0,"Closed","Open") WHERE p.RecdPVID='${id}';`;
-
-  //   setupQueryMod(updat, [id], (e, r) => {
-  //     if (e) {
-  //       console.log(e);
-  //       return res.json({ Status: "Error", Error: "Failed to update" });
-  //     }
-
-  //     const data = `SELECT Receive_Now, Dc_inv_no FROM magodmis.payment_recd_voucher_details WHERE RecdPVID='${id}';`;
-  //     setupQueryMod(data, (err, result) => {
-  //       if (err) {
-  //         console.log(err);
-  //         return res.json({ Status: "Error", Error: "Failed to fetch data" });
-  //       }
-
-  //       const updateDCStatus = (i) => {
-  //         if (i >= result.length) {
-  //           return res.json({ Status: "Success", result: result });
-  //         }
-
-  //         const dc_inv_no = result[i].Dc_inv_no;
-  //         setupQueryMod(
-  //           `UPDATE magodmis.draft_dc_inv_register d SET d.PymtAmtRecd=d.PymtAmtRecd+'${result[i].Receive_Now}', d.DCStatus=If( d.GrandTotal=d.PymtAmtRecd,'Closed','Despatched') WHERE  d.DC_Inv_No='${dc_inv_no}'`,
-  //           (updateErr, updateRes) => {
-  //             if (updateErr) {
-  //               //  console.log(updateErr);
-  //               return res.json({
-  //                 Status: "Error",
-  //                 Error: "Failed to update DC status",
-  //               });
-  //             }
-
-  //             updateDCStatus(i + 1);
-  //           }
-  //         );
-  //       };
-
-  //       updateDCStatus(0);
-  //     });
-  //   });
-  // });
-
 });
-
 
 paymentreceipts.get("/getinvlist", (req, res) => {
   const customercode = req.query.customercode; // Access the query parameter "customercode"
@@ -402,97 +222,6 @@ paymentreceipts.get("/getinvlist", (req, res) => {
     }
   });
 });
-
-// paymentreceipts.put('/saveVoucherReceipt/:RecdPVID', (req, res) => {
-//     console.log(req.body, req.body.length, 'jhhjjjjjjjjjjjjk');
-//     const id = req.params.RecdPVID;
-//    // console.log("iddd", id, Array.isArray(req.body));
-//    // console.log("recdpvsrl", req.body.RecdPvSrl);
-//     //Check if the data already exists in the database
-//     for (let i = 0; i < req.body.length; i++) {
-//         console.log("recdpvsrl", req.body[i].RecdPvSrl);
-//     }
-//     setupQueryMod(`SELECT RecdPVID,RecdPvSrl,Dc_inv_no FROM magodmis.payment_recd_voucher_details where RecdPVID='${id}'`, (error, results) => {
-//         // console.log(results);
-
-//         let y = true;
-//         for (let i = 0; i < req.body.length; i++) {
-//             const exists = results.some(obj =>
-//                 obj.RecdPVID === parseInt(id) && obj.Dc_inv_no === req.body[i].Dc_inv_no
-//             );
-//             // console.log("exist", exists);
-//             // if(results[i].RecdPVID=== parseInt(id) && results[i].RecdPvSrl===req.body[i].RecdPvSrl){
-//             if (exists) {
-//                 //  console.log("jjjjjjjjjjjjj",results[i].RecdPVID,id,results[i].Dc_inv_no,req.body[i].Dc_inv_no);
-//                 // return res.json({status:'fail', message: 'Data already exists in the database.' });
-//                 y = false;
-//                 setupQueryMod(`Update magodmis.payment_recd_voucher_details set Receive_Now='${req.body[i].Receive_Now}',
-//             InvUpdated='${req.body[i].InvUpdated}' where RecdPVID='${req.body[i].RecdPVID}' and Dc_inv_no='${req.body[i].Dc_inv_no}';`, (err, results) => {
-//                     if (err) {
-//                         console.log("33");
-//                         console.log(err);
-//                         // return res.json({  status:'query',Error: 'inside signup query' });
-//                     }
-//                     else {
-//                         console.log("4");
-//                          return res.json({ Status: 'Success', result: results })
-//                     }
-//                 })
-//                 setupQueryMod(`Update magodmis.payment_recd_voucher_register d set d.On_account = CASE WHEN  '${i}' = 0 THEN d.Amount-'${parseFloat(req.body[i].Receive_Now)}' ELSE d.On_account-'${parseInt(req.body[i].Receive_Now)}' END where RecdPVID='${req.body[i].RecdPVID}';`, (err, r) => {
-//                     //  console.log(i,r, 'rrrrrrrrrrrrrrrrrrrrr')
-//                 })
-//             }
-
-//             else {
-//                 console.log(y, 'true')
-//                 const formatDate = (dateString) => {
-//                     const date = new Date(dateString);
-//                     const year = date.getFullYear();
-//                     const month = String(date.getMonth() + 1).padStart(2, '0');
-//                     const day = String(date.getDate()).padStart(2, '0');
-//                     return `${year}-${month}-${day}`;
-//                 };
-
-//                 const sqlpost =
-//                     "INSERT INTO magodmis.payment_recd_voucher_details(RecdPVID,RecdPvSrl,Dc_inv_no,Inv_No, Inv_Type,Inv_Amount, Amt_received, Receive_Now, InvUpdated, Inv_Date, RefNo) VALUES (?)";
-//                 const values = [
-//                     id,
-//                     req.body[i].RecdPvSrl,
-//                     req.body[i].Dc_inv_no,
-//                     req.body[i].Inv_No,
-//                     req.body[i].Inv_Type,
-//                     req.body[i].Inv_Amount,
-//                     req.body[i].Amt_received,
-//                     req.body[i].Receive_Now,
-//                     req.body[i].InvUpdated,
-//                     formatDate(req.body[i].Inv_date),
-//                     req.body[i].RefNo
-//                 ]
-//                 //console.log("values", values);
-//                 setupQueryMod(sqlpost, [values], (err, result) => {
-//                     if (err) {
-//                         console.log("33");
-//                         console.log(err);
-//                         // return res.json({  status:'query',Error: 'inside signup query' });
-//                     }
-//                     else {
-//                         console.log("4");
-//                         // return res.json({ Status: 'Success', result: result })
-//                     }
-//                 })
-
-//                 setupQueryMod(`Update magodmis.payment_recd_voucher_register d set d.On_account = CASE WHEN  '${req.body[i].RecdPvSrl}' = 1 THEN d.Amount-'${parseFloat(req.body[i].Receive_Now)}' ELSE d.On_account-'${parseInt(req.body[i].Receive_Now)}' END where RecdPVID='${req.body[i].RecdPVID}';`, (err, r) => {
-//                   //  console.log(i, r, 'rrrrrrrrrrrrrrrrrrrrr')
-//                 })
-
-//                 // return res.json({ Status: 'Success', result: results })
-//             }
-//         }
-
-//         return res.json({ Status: 'Success', result: results })
-
-//     })
-// })
 
 paymentreceipts.put("/saveVoucherReceipt/:RecdPVID", async (req, res) => {
   console.log("wertyuiop", req.body);
@@ -576,7 +305,8 @@ paymentreceipts.put("/saveVoucherReceipt/:RecdPVID", async (req, res) => {
       });
 
       setupQueryMod(
-        `Update magodmis.payment_recd_voucher_register d set d.On_account = CASE WHEN  '${item.RecdPvSrl
+        `Update magodmis.payment_recd_voucher_register d set d.On_account = CASE WHEN  '${
+          item.RecdPvSrl
         }' = 1 THEN d.Amount-'${parseFloat(
           item.Receive_Now
         )}' ELSE d.On_account-'${parseInt(
@@ -678,7 +408,6 @@ paymentreceipts.delete("/deleteRecepit/:RecdPVID", (req, res) => {
     return res.json({ Status: "Success" });
   });
 });
-
 
 paymentreceipts.get("/getreceipt", (req, res) => {
   const receipt_id = req.query.receipt_id; // Access the query parameter "customercode"
@@ -826,8 +555,6 @@ paymentreceipts.post("/addToVoucher", async (req, res, next) => {
     next(error);
   }
 });
-
-
 
 paymentreceipts.post("/removeVoucher", async (req, res, next) => {
   try {
@@ -997,16 +724,14 @@ paymentreceipts.get("/getallreceipts", (req, res) => {
   });
 });
 
-
-//getDCno 
+//getDCno
 paymentreceipts.post("/getDCNo", async (req, res, next) => {
   // const { unit, srlType, ResetPeriod, ResetValue, VoucherNoLength, prefix } =
   //   req.body;
-  const { unit, srlType, ResetPeriod, ResetValue, VoucherNoLength } =
-    req.body;
+  const { unit, srlType, ResetPeriod, ResetValue, VoucherNoLength } = req.body;
   console.log("UNIT NAME=", unit, srlType);
 
-  const prefix = 'JG';
+  const prefix = "JG";
 
   const unitName = `${unit}`;
   const date = new Date();
@@ -1063,15 +788,11 @@ paymentreceipts.post("/getDCNo", async (req, res, next) => {
             logger.error(insertError);
             console.log("error in insert fro running no", insertError);
             return next(insertResult);
-          }
-          else {
-
+          } else {
             res.json({ message: "Record inserted successfully." });
           }
         });
-      }
-
-      else {
+      } else {
         res.json({ message: "Record already existsssssssssss." });
       }
     });
@@ -1081,6 +802,4 @@ paymentreceipts.post("/getDCNo", async (req, res, next) => {
   }
 });
 
-
 module.exports = paymentreceipts;
-
