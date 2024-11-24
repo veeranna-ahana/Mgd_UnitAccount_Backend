@@ -217,7 +217,7 @@ paymentreceipts.get("/getinvlist", (req, res) => {
       console.log("error", err);
       return res.json({ Error: " error in sql" });
     } else {
-      // console.log(" inv list result", result);
+      console.log("open  inv list result", result);
       return res.json({ Status: "Success", Result: result });
     }
   });
@@ -328,7 +328,7 @@ paymentreceipts.put("/saveVoucherReceipt/:RecdPVID", async (req, res) => {
 
 paymentreceipts.get("/getreceiptdata", (req, res) => {
   const customercode = req.query.customercode; // Access the query parameter "customercode"
-  // console.log(customercode);
+  console.log(customercode, "onaccount list cust code ");
   const sql =
     "SELECT  * from magodmis.payment_recd_voucher_register  WHERE Cust_code =? and Recd_PVNo='Draft' ORDER BY RecdPVID DESC LIMIT 1;";
   setupQueryMod(sql, [customercode], (err, result) => {
