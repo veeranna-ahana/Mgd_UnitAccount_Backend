@@ -86,4 +86,8 @@ const userRouter = require("./routes/user");
 app.use("/user", userRouter);
 
 const mailRouter = require("./routes/unitAccounts/mailer");
+
 app.use("/mailer", mailRouter);
+
+const savePDF = require("./routes/unitAccounts/saveToPDFServer/savePDFServer.js");
+app.use("/PDF", savePDF);
