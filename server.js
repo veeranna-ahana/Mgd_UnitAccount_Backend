@@ -87,3 +87,6 @@ app.use("/user", userRouter);
 
 const mailRouter = require("./routes/unitAccounts/mailer");
 app.use("/mailer", mailRouter);
+
+const dailyReportPdfServerRouter = require("./routes/unitAccounts/PDF/DailyReportPdfServer.js");
+app.use("/dailyReportPdfServer", dailyReportPdfServerRouter);
