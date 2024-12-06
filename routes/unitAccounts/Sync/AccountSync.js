@@ -3,6 +3,7 @@ const { dailyReportQuery, setupQuery } = require("../../../helpers/dbconn");
 var bodyParser = require("body-parser");
 
 //Invoiced Cust List
+//Invoiced Cust List
 //List of Customers in Invoices That do not have a HOSyncId
 accountSyncRouter.get("/invoicedCustList", async (req, res, next) => {
   try {
