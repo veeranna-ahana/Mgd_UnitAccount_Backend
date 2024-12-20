@@ -1,5 +1,9 @@
 const showSyncStatusRouter = require("express").Router();
-const { hqQuery, dailyReportQuery01, setupQuery } = require("../../../helpers/dbconn");
+const {
+  hqQuery,
+  dailyReportQuery01,
+  setupQuery,
+} = require("../../../helpers/dbconn");
 var bodyParser = require("body-parser");
 
 showSyncStatusRouter.get("/getunitName", async (req, res, next) => {
@@ -33,7 +37,7 @@ showSyncStatusRouter.put(
                   JOIN magodmis.ho_paymentrv_register h1 ON h1.Id = h.UnitID
                   JOIN magodmis.draft_dc_inv_register d ON d.DC_Inv_No = h.Dc_inv_no
                   WHERE NOT (h1.Status = 'Cancelled' OR h1.Status = 'Draft')
-                    AND (d.DCStatus LIKE 'Despatched' OR d.DCStatus LIKE 'OverPaid')
+                    AND (d.DCStatus LIKE 'Dispatched' OR d.DCStatus LIKE 'OverPaid')
                   GROUP BY d.DC_Inv_No
           
                   UNION ALL
@@ -46,7 +50,7 @@ showSyncStatusRouter.put(
                   JOIN magodmis.payment_recd_voucher_register h1 ON h1.RecdPVID = h.RecdPVID
                   JOIN magodmis.draft_dc_inv_register d ON d.DC_Inv_No = h.Dc_inv_no
                   WHERE NOT (h1.ReceiptStatus = 'Cancelled' OR h1.ReceiptStatus = 'Draft')
-                    AND (d.DCStatus LIKE 'Despatched' OR d.DCStatus LIKE 'OverPaid')
+                    AND (d.DCStatus LIKE 'Dispatched' OR d.DCStatus LIKE 'OverPaid')
                   GROUP BY d.DC_Inv_No
               ) AS b
               GROUP BY b.DC_Inv_No
@@ -56,7 +60,7 @@ showSyncStatusRouter.put(
               d.DCStatus = CASE
                   WHEN d.GrandTotal = a.Receive_Now THEN 'Closed'
                   WHEN d.GrandTotal < a.Receive_Now THEN 'OverPaid'
-                  ELSE 'Despatched'
+                  ELSE 'Dispatched'
               END
           WHERE d.DC_Inv_No = a.DC_Inv_No;`,
         (err, data) => {
@@ -229,7 +233,7 @@ showSyncStatusRouter.put(
             d.PymtAmtRecd = B.Receive_now,
             d.DCStatus = CASE
                 WHEN d.grandTotal - B.Receive_now = 0 THEN 'Closed'
-                WHEN d.grandTotal - B.Receive_now > 0 THEN 'Despatched'
+                WHEN d.grandTotal - B.Receive_now > 0 THEN 'Dispatched'
                 ELSE 'OverPaid'
             END
         WHERE
@@ -280,7 +284,7 @@ showSyncStatusRouter.put(
             d.PymtAmtRecd = B.Receive_now,
             d.DCStatus = CASE
                 WHEN d.grandTotal - B.Receive_now = 0 THEN 'Closed'
-                WHEN d.grandTotal - B.Receive_now > 0 THEN 'Despatched'
+                WHEN d.grandTotal - B.Receive_now > 0 THEN 'Dispatched'
                 ELSE 'OverPaid'
             END
         WHERE d.Dc_inv_no = '${dcInvNo}';`,

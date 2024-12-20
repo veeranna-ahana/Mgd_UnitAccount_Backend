@@ -1,16 +1,20 @@
+/** @format */
+
 const userRouter = require("express").Router();
 var createError = require("http-errors");
 const CryptoJS = require("crypto-js");
 var bodyParser = require("body-parser");
-const { logger } = require("../../helpers/logger");
 
-const { setupQuery, setupQueryMod } = require("../../helpers/dbconn");
-const { signAccessToken } = require("../../helpers/jwt_helper");
+const { setupQuery, setupQueryMod } = require("../helpers/dbconn");
+const { signAccessToken } = require("../helpers/jwt_helper");
+const { logger } = require("../helpers/logger");
 
+const { exec } = require("child_process");
+const fs = require("fs");
+// const subprocess = require("subprocess");
 var jsonParser = bodyParser.json();
 
-userRouter.post(`/login`, jsonParser, async (req, res, next) => {
-  console.log(req.body, "/LOGIN INPUT");
+userRouter.post(`/login`, async (req, res, next) => {
   try {
     console.log("login");
     const username = req.body.username;
@@ -21,18 +25,22 @@ userRouter.post(`/login`, jsonParser, async (req, res, next) => {
     if (!username || !passwrd) res.send(createError.BadRequest());
 
     setupQueryMod(
-      `Select usr.Name, usr.UserName,usr.Password,usr.Role, unt.UnitName,usr.ActiveUser from magod_setup.magod_userlist usr
+      `Select usr.Name, usr.UserName,usr.Password,usr.Role, unt.UnitName,usr.ActiveUser,unt.State_Id,unt.GST_No from magod_setup.magod_userlist usr
         left join magod_setup.magodlaser_units unt on unt.UnitID = usr.UnitID WHERE usr.UserName = '${username}' and usr.ActiveUser = '1'`,
       async (err, d) => {
         if (err) logger.error(err);
+        logger.error(
+          `Login failed for username '${username}': Invalid username or password.`
+        );
+        // res.status(401).send({ error: "Invalid username or password" });
         let data = d;
+        console.log("data", data);
         if (data.length > 0) {
           if (data[0]["Password"] == passwrd) {
-            console.log("passwor...", data[0]["Password"]);
             delete data[0]["Password"];
 
             setupQueryMod(
-              `Select m.MenuUrl from magod_setup.menumapping mm
+              `Select m.MenuUrl,ModuleId  from magod_setup.menumapping mm
                 left outer join magod_setup.menus m on m.Id = mm.MenuId
                 where mm.Role = '${data[0]["Role"]}' and mm.ActiveMenu = '1'`,
               async (err, mdata) => {
@@ -41,10 +49,20 @@ userRouter.post(`/login`, jsonParser, async (req, res, next) => {
                 mdata.forEach((element) => {
                   menuarray.push(element["MenuUrl"]);
                 });
+                const moduleIds = [
+                  ...new Set(
+                    mdata
+                      .map((menu) => menu.ModuleId)
+                      .filter((id) => id !== null)
+                  ),
+                ];
                 let accessToken = await signAccessToken(data[0]["UserName"]);
+
                 res.send({
                   accessToken: accessToken,
                   data: { ...data, access: menuarray },
+                  moduleIds: moduleIds,
+                  // access: menuarray,
                 });
                 logger.info(`Login Success - ${data[0]["UserName"]}`);
               }
@@ -57,130 +75,13 @@ userRouter.post(`/login`, jsonParser, async (req, res, next) => {
           res.send(createError.Unauthorized("Invalid Username/Password"));
           logger.error(`Login Failed - ${username} IP : ${req.ip}`);
         }
-
-        //      res.send({...data, decPass, encrypted: encrypted.toString(), decrypted: decrypted.toString(CryptoJS.enc.Utf8)});
       }
     );
-
-    //res.send(createError.Unauthorized("Invalid Username/Password"))
   } catch (error) {
     next(error);
     logger.error(`Error - ${error}`);
   }
 });
-
-// Working msg is sent as blank
-// userRouter.post(`/savemenurolemapping`, async (req, res, next) => {
-//     console.log("Save Menu Role Mapping API Call")
-
-//     try {
-//         console.log(req.body.newselectedmenu);
-//         let data = req.body.newselectedmenu;
-//         console.log("data variable : " + data.length)
-//         let msg = "";
-//         setupQuery(`Select * from magod_setup.menumapping where Role = '${data[0]["role"]}'`, async (dr) => {
-//             if (dr.length > 0) {
-//                 for (let i = 0; i < data.length; i++) {
-//                      setupQuery(`UPDATE magod_setup.menumapping SET ActiveMenu = 0 WHERE Role = '${data[i]["role"]}'`, async (mapdata) => { console.log("Deactivated ") })
-
-//                     setupQuery(`Select Id from magod_setup.menus where MenuName = '${data[i]["MenuName"]}'`, async (menuid) => {
-//                         if (menuid.length > 0) {
-//                             console.log(menuid[0]["Id"] + " " + data[i]["MenuName"])
-//                             setupQuery(`UPDATE magod_setup.menumapping SET ActiveMenu = 1 WHERE Role = '${data[i]["role"]}' And MenuId = '${menuid[0]["Id"]}'`, async (dmp) => {
-//                                 console.log("Activated ")
-//                                 if (dmp.affectedRows == 0) {
-//                                     console.log("Inserting ")
-//                                     setupQuery(`INSERT INTO magod_setup.menumapping (Role, MenuId, ActiveMenu)
-//                                     VALUES ('${data[i]["role"]}', '${menuid[0]["Id"]}', '1')`, async (ins) => {
-//                                         msg = "success"
-//                                         //  res.send({ status: "success" })
-//                                     })
-//                                 }
-//                                 else if (dmp.affectedRows > 0) {
-//                                     console.log("Updating")
-//                                     msg = "updated"
-//                                     //  res.send({ status: "updated" })
-//                                 }
-
-//                             })
-//                         }
-
-//                     })
-//                 }
-//                 res.send({ status: msg })
-//             }
-//         });
-//     } catch (error) {
-//         next(error)
-//     }
-// });
-
-// Modifying the above working for Msg
-// userRouter.post(`/savemenurolemapping`, async (req, res, next) => {
-//     console.log("Save Menu Role Mapping API Call")
-//     try {
-//         console.log(req.body.newselectedmenu);
-//         let data = req.body.newselectedmenu;
-
-//         setupQuery(`Select * from magod_setup.menumapping where Role = '${data[0]["role"]}'`, async (dr) => {
-//             console.log(data[0]["role"])
-//             console.log(dr.length)
-//             let msg = "";
-//             if (dr.length > 0) {
-//                 //        let msg = "";
-//                 for (let i = 0; i < data.length; i++) {
-//                     setupQuery(`UPDATE magod_setup.menumapping SET ActiveMenu = 0 WHERE Role = '${data[i]["role"]}'`, async (mapdata) => {
-//                         console.log("Deactivated ")
-//                     })
-
-//                     setupQuery(`Select Id from magod_setup.menus where MenuName = '${data[i]["MenuName"]}'`, async (menuid) => {
-//                         console.log("Menu check "+menuid[0]["Id"])
-//                         if (menuid.length > 0) {
-//                             setupQuery(`UPDATE magod_setup.menumapping SET ActiveMenu = 1 WHERE Role = '${data[i]["role"]}' And MenuId = '${menuid[0]["Id"]}'`, async (dmp) => {
-//                                 console.log("Activated ")
-//                                 if (dmp.affectedRows == 0) {
-//                                     console.log("Inserting ")
-//                                     setupQuery(`INSERT INTO magod_setup.menumapping (Role, MenuId, ActiveMenu) VALUES ('${data[i]["role"]}', '${menuid["Id"]}', '1')`, async (ins) => {
-//                                         msg = "success"
-//                                         console.log(msg)
-//                                     })
-//                                 } else if (dmp.affectedRows != 0) {
-//                                     console.log("Updating")
-//                                     msg = "updated"
-//                                     console.log(msg)
-//                                 }
-//                             })
-//                         }
-//                     })
-//                 }
-//                 res.send({ status: msg });
-//             } else if (dr.length == 0) {
-
-//                 if (data.length > 0) {
-
-//                     for (let i = 0; i < data.length; i++) {
-//                         console.log(data[i]["MenuName"])
-//                         setupQuery(`Select Id from magod_setup.menus where MenuName = '${data[i]["MenuName"]}'`, async (menuid) => {
-//                             if (menuid.length > 0) {
-//                                 setupQuery(`INSERT INTO magod_setup.menumapping (Role, MenuId, ActiveMenu) VALUES ('${data[i]["role"]}', '${menuid["Id"]}', '1')`, async (ins) => {
-//                                     msg = "success"
-//                                     console.log(msg)
-//                                     res.send({ status: msg })
-//                                 })
-//                             }
-//                         })
-//                     }
-
-//                 }
-//                 //res.send({ status: msg })
-//             }
-
-//         });
-
-//     } catch (error) {
-//         next(error)
-//     }
-// });
 
 userRouter.post(`/savemenurolemapping`, async (req, res, next) => {
   console.log("Save Menu Role Mapping API Call");
@@ -190,7 +91,6 @@ userRouter.post(`/savemenurolemapping`, async (req, res, next) => {
   let nomenu = false;
   let inRole = "";
   try {
-    // console.log(req.body.newselectedmenu);
     let data = req.body.newselectedmenu;
     let msg = "";
     if (data.length > 0) {
@@ -198,7 +98,6 @@ userRouter.post(`/savemenurolemapping`, async (req, res, next) => {
         `Select * from magod_setup.menumapping where Role = '${data[0]["role"]}'`,
         async (err, dr) => {
           if (err) logger.error(err);
-          //   console.log(dr)
           inRole = dr["Role"];
           console.log(inRole);
         }
@@ -279,59 +178,6 @@ userRouter.post(`/savemenurolemapping`, async (req, res, next) => {
   }
 });
 
-//                                 if (dmp.affectedRows == 0) {
-//                                     console.log("After update to active "+menuid.Id)
-//                                     console.log("Inserting " + data[i]["role"], menuid[0]["Id"])
-//                                     setupQuery(`INSERT INTO magod_setup.menumapping (Role, MenuId, ActiveMenu) VALUES ('${data[i]["role"]}', '${menuid[0]["Id"]}', '1')`, async (ins) => {
-//                                         msg = "success"
-//                                         console.log(" dr.length > 0 " + msg)
-
-//                                     })
-//                                 } else if (dmp.affectedRows != 0) {
-//                                     console.log("Updating")
-//                                     msg = "updated"
-//                                     console.log("dmp.affectedrows <> 0 " + msg)
-
-//                                 }
-
-//                             })
-//                           //  res.send({ status: msg });
-//                         }
-//                     })
-//                 }
-//                // res.send({ status: msg });
-
-//             } else if (dr.length == 0) {
-
-//                 if (data.length > 0) {
-//                     console.log("data length "+data.length)
-
-//                     for (let i = 0; i < data.length; i++) {
-//                         setupQuery(`Select Id from magod_setup.menus where MenuName = '${data[i]["MenuName"]}'`, async (menuid) => {
-//                             console.log(" Check Menuid - 1" + menuid.Id)
-//                             if (menuid.length > 0) {
-//                                 setupQuery(`INSERT INTO magod_setup.menumapping (Role, MenuId, ActiveMenu) VALUES ('${data[i]["role"]}', '${menuid.Id}', '1')`, async (ins) => {
-//                                     msg = "success"
-//                                     console.log(" dr,length == 0 and data.length > 0 and menuid.length > 0 " + msg)
-//                                     res.send({ status: msg });
-//                                 })
-//                             }
-//                         })
-//                     }
-//                     console.log(" dr length = 0 : "+ msg)
-//                  //   res.send({ status: msg })
-
-//                 }
-//                 //  res.send({ status: msg })
-//             }
-
-//         });
-//         res.send({ status: msg })
-//     } catch (error) {
-//         next(error)
-//     }
-// });
-
 userRouter.post(`/getusers`, async (req, res, next) => {
   console.log("get users");
   try {
@@ -340,7 +186,7 @@ userRouter.post(`/getusers`, async (req, res, next) => {
         left join magod_setup.magodlaser_units unt on unt.UnitID = usr.UnitID where usr.ActiveUser = 1`,
       async (err, d) => {
         if (err) logger.error(err);
-        console.log(d);
+        // console.log(d);
         res.send(d);
       }
     );
@@ -378,7 +224,6 @@ userRouter.post(`/delusers`, async (req, res, next) => {
 });
 
 userRouter.post(`/saveusers`, async (req, res, next) => {
-  console.log("saveusers");
   try {
     let data = req.body.usrdata;
     console.log(data);
@@ -389,7 +234,7 @@ userRouter.post(`/saveusers`, async (req, res, next) => {
       async (err, d) => {
         if (err) logger.error(err);
         if (d.length == 0) {
-          let sql = `INSERT INTO magod_setup.magod_userlist (Name,UserName,ActiveUser,ResetPassword,UserPassWord,CreatedTime,Role,Password,UnitID) 
+          let sql = `INSERT INTO magod_setup.magod_userlist (Name,UserName,ActiveUser,ResetPassword,UserPassWord,CreatedTime,Role,Password,UnitID)
                     VALUES ('${data.Name}','${data.UserName}','1','0','',Current_TimeStamp,'${data.Role}','${passwrd}','${data.Unit}')`;
           setupQueryMod(sql, async (err, d) => {
             if (err) logger.error(err);
@@ -455,7 +300,6 @@ userRouter.post(`/getusermodules`, async (req, res, next) => {
 });
 
 userRouter.post(`/getuserroles`, async (req, res, next) => {
-  // console.log("getuserroles")
   try {
     setupQueryMod(`Select * FROM magod_setup.userroles`, async (err, data) => {
       if (err) logger.error(err);
@@ -508,20 +352,6 @@ userRouter.post(`/adduserroles`, async (req, res, next) => {
   }
 });
 
-// userRouter.post(`/upduserroles`, async (req, res, next) => {
-//     try {
-//         let oldrole = req.body.oldrolename;
-//         let newrole = req.body.nrerolename;
-
-//         setupQuery(`Update magod_setup.userroles set Role = '${newrole}' where Role='${oldrole}'`,(data) => {
-//             res.send({ status: "updated" })
-//         })
-//     }catch(error)
-//     {
-//         next(error);
-//     }
-// });
-
 userRouter.post(`/deluserroles`, async (req, res, next) => {
   console.log("Delete user Role");
   try {
@@ -546,8 +376,6 @@ userRouter.post(`/deluserroles`, async (req, res, next) => {
         res.send({ status: "Deleted" });
       }
     );
-    //     }
-    // })
   } catch (error) {
     next(error);
   }
@@ -602,7 +430,7 @@ userRouter.post(`/getrolemenus`, async (req, res, next) => {
         where mm.Role = '${strrole}' and mm.ActiveMenu = '1'`,
       async (err, data) => {
         if (err) logger.error(err);
-        //        console.log(data);
+
         res.send(data);
       }
     );
@@ -618,7 +446,7 @@ userRouter.post(`/getusermenus`, async (req, res, next) => {
          where ActiveMenu = '1'`,
       async (err, data) => {
         if (err) logger.error(err);
-        //       console.log(data);
+
         res.send(data);
       }
     );
@@ -644,7 +472,7 @@ userRouter.post(`/delusermenus`, async (req, res, next) => {
 
 userRouter.post(`/addusermenus`, async (req, res, next) => {
   console.log("addusermenus");
-  // console.log(req.body.menu)
+
   let msg = "";
   try {
     const strmenu = req.body.menu.MenuName;
@@ -688,6 +516,69 @@ userRouter.post(`/addusermenus`, async (req, res, next) => {
   } catch (error) {
     next(error);
   }
+});
+
+// New endpoint to fetch menu URLs (no login)
+userRouter.post("/fetchMenuUrls", async (req, res, next) => {
+  try {
+    const { role, username } = req.body;
+    console.log("req.body", req.body);
+    if (!role || !username) return res.send(createError.BadRequest());
+
+    setupQueryMod(
+      `Select usr.Name, usr.UserName,usr.Password,usr.Role, unt.UnitName,usr.ActiveUser from magod_setup.magod_userlist usr
+        left join magod_setup.magodlaser_units unt on unt.UnitID = usr.UnitID WHERE usr.UserName = '${username}' and usr.ActiveUser = '1'`,
+      async (err, d) => {
+        if (err) logger.error(err);
+        let data = d;
+        if (data.length > 0) {
+          setupQueryMod(
+            `Select m.MenuUrl,ModuleId  from magod_setup.menumapping mm
+                left outer join magod_setup.menus m on m.Id = mm.MenuId
+                where mm.Role = '${data[0]["Role"]}' and mm.ActiveMenu = '1'`,
+            async (err, mdata) => {
+              if (err) logger.error(err);
+              let menuarray = [];
+              mdata.forEach((element) => {
+                menuarray.push(element["MenuUrl"]);
+              });
+              const moduleIds = [
+                ...new Set(
+                  mdata.map((menu) => menu.ModuleId).filter((id) => id !== null)
+                ),
+              ];
+              res.send({
+                data: { ...data, access: menuarray },
+                moduleIds: moduleIds,
+              });
+            }
+          );
+        } else {
+          res.send(createError.Unauthorized("Invalid Username"));
+          logger.error(` Failed - ${username} IP : ${req.ip}`);
+        }
+      }
+    );
+  } catch (error) {
+    next(error);
+    logger.error(`Error - ${error}`);
+  }
+});
+
+userRouter.post("/openexplorer", (req, res) => {
+  const testPath = req.body.path || "E:\\After-Restoration"; // Default path
+  exec(
+    `powershell.exe Start-Process explorer.exe -ArgumentList "${testPath}"`,
+    (err, stdout, stderr) => {
+      if (err) {
+        console.error(`Error opening path: ${err.message}`);
+        console.error(`stderr: ${stderr}`);
+        return res.status(500).send("Failed to open the path");
+      }
+      console.log(`stdout: ${stdout}`);
+      res.send(`Opened path: ${testPath}`);
+    }
+  );
 });
 
 module.exports = userRouter;
