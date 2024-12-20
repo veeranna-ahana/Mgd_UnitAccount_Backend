@@ -1,23 +1,21 @@
- const billingDetails = require("express").Router();
-// const cors = require('cors');
-// const { dbco, dbco1, dbgetData, deleteUnitData, updateUnitData } = require("../../../helpers/dbconn")
-const { setupQueryMod,misQuery } = require("../../../../helpers/dbconn")
+const billingDetails = require("express").Router();
 
+const { setupQueryMod, misQuery } = require("../../../../helpers/dbconn");
+const logger = require("../../../../helpers/logger");
 
+billingDetails.get("/getTabPageData", (req, res) => {
+  const selectedDate = req.query.date;
+  console.log("Selected Date in server:", selectedDate);
+  try {
+    //const sqlquery=`SELECT * FROM magodmis.draft_dc_inv_register WHERE Inv_Date='2010-04-13'`
 
-billingDetails.get('/getTabPageData', (req,res)=>{
-    const selectedDate = req.query.date;
-   console.log('Selected Date in server:', selectedDate);
-    try {
-//const sqlquery=`SELECT * FROM magodmis.draft_dc_inv_register WHERE Inv_Date='2010-04-13'`
+    // const z=` SELECT m.UnitName,d.* FROM magodmis.draft_dc_inv_register d,magod_setup.magodlaser_units m WHERE
+    //  d.Inv_Date='${req.query.date}'`
 
-// const z=` SELECT m.UnitName,d.* FROM magodmis.draft_dc_inv_register d,magod_setup.magodlaser_units m WHERE 
-//  d.Inv_Date='${req.query.date}'`
+    const z = `SELECT  m.UnitName, d.* FROM magodmis.draft_dc_inv_register d,magod_setup.magodlaser_units m WHERE 
+ d.Inv_Date='${req.query.date}' AND m.UnitName='Jigani' ;`;
 
- const z=`SELECT  m.UnitName, d.* FROM magodmis.draft_dc_inv_register d,magod_setup.magodlaser_units m WHERE 
- d.Inv_Date='${req.query.date}' AND m.UnitName='Jigani' ;`
-
- const z1=` SELECT
+    const z1 = ` SELECT
  m.UnitName,
  d.*,
  CASE
@@ -63,32 +61,26 @@ INNER JOIN
 ON
  m.UnitName = 'Jigani' AND  m.Current = 1
 WHERE
- d.Inv_Date = '${req.query.date}';`
-        misQuery(z1, (err, data) => {
-            if (err) {
-               // console.log("err in query", err);
-            }
-            else {
-                 console.log("long table tabdata", data);
-                return res.json({ Status: 'Success', Result: data });
-            }
+ d.Inv_Date = '${req.query.date}';`;
+    misQuery(z1, (err, data) => {
+      if (err) {
+        logger.error(err);
+        // console.log("err in query", err);
+      } else {
+        console.log("long table tabdata", data);
+        return res.json({ Status: "Success", Result: data });
+      }
+    });
+  } catch (error) {
+    logger.error(error);
+    next(error);
+  }
+});
 
-        });
-    } catch (error) {
-       // console.log("error", error);
-        next(error);
-    }
-})
+billingDetails.get("/getTab2Data", (req, res) => {
+  const selectedDate = req.query.date;
 
-
-
-
-billingDetails.get("/getTab2Data", (req,res)=>{
-    const selectedDate = req.query.date;
-    console.log('Selected Date in server:', selectedDate);
-
-    
-    const a=`SELECT
+  const a = `SELECT
     t1.DC_InvType,
     t1.DC_Inv_NO,
     t1.Net_Total,
@@ -110,31 +102,20 @@ JOIN (
         DC_InvType
 ) AS t2 ON t1.DC_InvType = t2.DC_InvType
 WHERE
-    t1.Inv_Date = '${selectedDate}';`
+    t1.Inv_Date = '${selectedDate}';`;
 
-    
-
-//     const k=`SELECT    DC_InvType,Inv_No , Net_Total,
-//     COUNT(*) AS InvTypeCount,SUM(Net_Total) AS TotalNetAmount
-// FROM magodmis.draft_dc_inv_register WHERE  Inv_Date = '2015-02-04'   GROUP BY
-//     DC_InvType;`
-    misQuery(a, (err, data) => {
-        if (err) {
-           // console.log("err in query", err);
-        }
-        else {
-            //console.log("data", data);
-            return res.json({ Status: 'Success', Result: data });
-        }
-
-    });
-
-})
-
-
+  //     const k=`SELECT    DC_InvType,Inv_No , Net_Total,
+  //     COUNT(*) AS InvTypeCount,SUM(Net_Total) AS TotalNetAmount
+  // FROM magodmis.draft_dc_inv_register WHERE  Inv_Date = '2015-02-04'   GROUP BY
+  //     DC_InvType;`
+  misQuery(a, (err, data) => {
+    if (err) {
+      logger.error(error);
+    } else {
+      //console.log("data", data);
+      return res.json({ Status: "Success", Result: data });
+    }
+  });
+});
 
 module.exports = billingDetails;
-
-
-
-

@@ -2,14 +2,14 @@ const unitlist = require("express").Router();
 // const cors = require('cors');
 // const { dbco, dbco1, dbgetData, deleteUnitData, updateUnitData } = require("../../../helpers/dbconn")
 const { setupQueryMod } = require("../../../helpers/dbconn");
+const logger = require("../../../helpers/logger");
 var bodyParser = require("body-parser");
 
 unitlist.get("/getUnitData", (req, res, next) => {
-  console.log();
   try {
     setupQueryMod(`SELECT * FROM magod_setup.magodlaser_units`, (err, data) => {
       if (err) {
-        console.log("err in query", err);
+        logger.error(err);
       } else {
         return res.json({ Status: "Success", Result: data });
       }

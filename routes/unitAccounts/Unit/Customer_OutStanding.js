@@ -3,12 +3,13 @@ const customerOutstanding = require("express").Router();
 // const { dbco, dbco1, dbgetData, deleteUnitData, updateUnitData } = require("../../../helpers/dbconn")
 const { setupQueryMod } = require("../../../helpers/dbconn");
 var bodyParser = require("body-parser");
+const logger = require("../../../helpers/logger");
 
 customerOutstanding.get("/unitNames", (req, res) => {
   const sql = `SELECT DISTINCT UnitName FROM magod_setup.magodlaser_units;`;
   setupQueryMod(sql, (err, result) => {
     if (err) {
-      console.log("err in query", err);
+      logger.error(err);
     } else {
       console.log("success unit names", result.length);
       return res.json({ Result: result });
@@ -18,7 +19,6 @@ customerOutstanding.get("/unitNames", (req, res) => {
 
 customerOutstanding.get("/unitOutstandingData", (req, res) => {
   const unitname = req.query.unitname;
-  console.log("uu", unitname);
 
   const sqlQ = `
         SELECT @UnitName AS UnitName, u.*, a.OutStandingInvoiceCount, a.OutStandingAmount
@@ -58,6 +58,7 @@ customerOutstanding.get("/unitOutstandingData", (req, res) => {
 
   setupQueryMod(UnitNameQuery, (err, result) => {
     if (err) {
+      logger.error(err);
       console.log("err in query", err);
     } else {
       //  console.log("success", result);
@@ -72,6 +73,7 @@ customerOutstanding.get("/getCustomers", (req, res) => {
   // SELECT DISTINCT Cust_Code , Cust_Name FROM magodmis.draft_dc_inv_register `;
   setupQueryMod(sql, (err, result) => {
     if (err) {
+      logger.error(err);
       console.log("err in query", err);
     } else {
       // console.log("cust sql query 500 change", result);
@@ -360,6 +362,7 @@ AND u.dcstatus NOT LIKE 'Closed';`;
     if (selectedDCType !== "ALL" && selectedDCType !== "Sales & Jobwork") {
       setupQueryMod(sql2, (err, result) => {
         if (err) {
+          logger.error(err);
           console.log("err in query", err);
         } else {
           console.log("unitname, dc type, cust code  sql2", result);
@@ -369,6 +372,7 @@ AND u.dcstatus NOT LIKE 'Closed';`;
     } else if (selectedDCType === "ALL") {
       setupQueryMod(sql1, (err, result) => {
         if (err) {
+          logger.error(err);
           console.log("err in query", err);
         } else {
           console.log("cust code for ALL  sql1", result.length);
@@ -378,6 +382,7 @@ AND u.dcstatus NOT LIKE 'Closed';`;
     } else if (selectedDCType === "Sales & Jobwork") {
       setupQueryMod(salesAndJobWork_Without_InvoiceFor, (err, result) => {
         if (err) {
+          logger.error(err);
           console.log("err in query", err);
         } else {
           console.log("salesAndJobWork_Without_InvoiceFor", result.length);
@@ -387,6 +392,7 @@ AND u.dcstatus NOT LIKE 'Closed';`;
     } else {
       setupQueryMod(sql3, (err, result) => {
         if (err) {
+          logger.error(err);
           console.log("err in query", err);
         } else {
           if (result.length === 0) {
@@ -404,6 +410,7 @@ AND u.dcstatus NOT LIKE 'Closed';`;
     if (selectedDCType === "Sales & Jobwork") {
       setupQueryMod(salesANDjobwork, (err, result) => {
         if (err) {
+          logger.error(err);
           console.log("sales nad jobwork error ", err);
           console.log("err in query", err);
         } else {
@@ -424,6 +431,7 @@ AND u.dcstatus NOT LIKE 'Closed';`;
 
       setupQueryMod(sql3, (err, result) => {
         if (err) {
+          logger.error(err);
           console.log("err in query", err);
         } else {
           if (result.length === 0) {
@@ -454,6 +462,7 @@ customerOutstanding.get("/getDataTable2", (req, res) => {
 
   setupQueryMod(sql, (err, result) => {
     if (err) {
+      logger.error(err);
       console.log("err in query", err);
     } else {
       //  console.log("DC_Inv_no result", result);
@@ -466,6 +475,7 @@ customerOutstanding.get("/getDCTypes", (req, res) => {
   const sql = `SELECT  DISTINCT DC_InvType FROM magodmis.draft_dc_inv_register `;
   setupQueryMod(sql, (err, result) => {
     if (err) {
+      logger.error(err);
       console.log("err in query", err);
     } else {
       //console.log("DC_Inv_type", result);
