@@ -183,12 +183,14 @@ dailyReportRouter.post("/clearanceDetails", async (req, res, next) => {
   const date = req.body.date;
   const id = req.body.id;
 
+  console.log(date, "and", id);
+
   try {
     dailyReportQuery(
       `SELECT d1.*, d1.Id AS Unit_UId, m.UnitName, d1.Sync_HOId AS UpDated
   FROM magodmis.draft_dc_inv_register d
   JOIN magodmis.dc_inv_summary d1 ON d.DC_Inv_No = d1.DC_Inv_No
-  JOIN magod_setup.magodlaser_units m ON d.Cust_Place = m.Place
+  JOIN magod_setup.magodlaser_units m ON d.Cust_Place = m.City
   WHERE d.Inv_No IS NOT NULL AND d.Inv_No NOT LIKE 'c%' AND d.Inv_Date = '${date}'
   AND d.DC_Inv_No = '${id}' AND m.Current;`,
       (err, data) => {
