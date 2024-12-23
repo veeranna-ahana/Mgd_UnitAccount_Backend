@@ -3,7 +3,7 @@ const paymentreceipts = require("express").Router();
 // const { dbco, dbco1, dbgetData, deleteUnitData, updateUnitData } = require("../../../helpers/dbconn")
 const { setupQueryMod } = require("../../../helpers/dbconn");
 var bodyParser = require("body-parser");
-const logger = require("../../../helpers/logger");
+const {logger} = require("../../../helpers/logger");
 
 function formatDate(dateStr) {
   const [day, month, year] = dateStr.split("-");
