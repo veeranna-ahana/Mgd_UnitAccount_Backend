@@ -565,4 +565,29 @@ userRouter.post("/fetchMenuUrls", async (req, res, next) => {
   }
 });
 
+userRouter.post("/openexplorer", (req, res) => {
+  const testPath = req.body.path || "E:\\After-Restoration"; // Default path
+  exec(
+    `powershell.exe Start-Process explorer.exe -ArgumentList "${testPath}"`,
+    (err, stdout, stderr) => {
+      if (err) {
+        console.error(`Error opening path: ${err.message}`);
+        console.error(`stderr: ${stderr}`);
+        return res.status(500).send("Failed to open the path");
+      }
+      console.log(`stdout: ${stdout}`);
+      res.send(`Opened path: ${testPath}`);
+    }
+  );
+});
+
+// Test execution with a simple command
+// exec("echo Test", (err, stdout, stderr) => {
+//   if (err) {
+//     console.error(`Error: ${err.message}`);
+//     return;
+//   }
+//   console.log(`Output: ${stdout}`);
+// });
+
 module.exports = userRouter;
