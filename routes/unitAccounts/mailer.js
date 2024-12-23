@@ -4,15 +4,19 @@ const multer = require("multer");
 const upload = multer({ dest: "uploads/" });
 
 const { sendQuotation, sendAttachmails } = require("../../helpers/sendmail");
+const logger = require("../../helpers/logger");
 
 mailRouter.post("/sendmail", async (req, res, next) => {
   try {
     const { customer, qtnDetails, qtnTC } = req.body;
     sendQuotation(customer, qtnDetails, qtnTC, (err, data) => {
-      if (err) return createError(500, err);
-      else res.send({ status: "success", data });
+      if (err) {
+        logger.error(err);
+        return createError(500, err);
+      } else res.send({ status: "success", data });
     });
   } catch (error) {
+    logger.error(error);
     next(error);
   }
 });
@@ -43,7 +47,7 @@ mailRouter.post(
         attachment,
         (error, data) => {
           if (error) {
-            console.error("Error while sending mail:", error);
+            logger.error(error);
             return res.status(500).json({ status: "error", message: error });
           }
           console.log("Mail sent successfully with data:", data);
@@ -51,6 +55,7 @@ mailRouter.post(
         }
       );
     } catch (error) {
+      logger.error(error);
       console.error("Error in /sendDirectMail route:", error);
       next(error);
     }

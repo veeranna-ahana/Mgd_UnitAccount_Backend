@@ -3,6 +3,7 @@ const paymentreceipts = require("express").Router();
 // const { dbco, dbco1, dbgetData, deleteUnitData, updateUnitData } = require("../../../helpers/dbconn")
 const { setupQueryMod } = require("../../../helpers/dbconn");
 var bodyParser = require("body-parser");
+const logger = require("../../../helpers/logger");
 
 function formatDate(dateStr) {
   const [day, month, year] = dateStr.split("-");
@@ -13,6 +14,7 @@ paymentreceipts.get("/getcustomerdata", (req, res) => {
   const sql = "SELECT Cust_Code, Cust_name FROM magodmis.cust_data";
   setupQueryMod(sql, (err, result) => {
     if (err) {
+      logger.error(err);
       console.log("error", err);
       return res.json({ Error: " error in sql" });
     } else {
@@ -48,11 +50,9 @@ paymentreceipts.post("/saveReceipt", (req, res) => {
       (e, r) => {
         //console.log(e, r)
         if (e) {
-          console.log("33");
+          logger.error(e);
           return res.json({ status: "query", Error: "inside signup query" });
         } else {
-          console.log("4121", r);
-
           return res.json({
             Status: "Success",
             result: { insertId: req.body.RecdPVID },
@@ -86,11 +86,10 @@ paymentreceipts.post("/saveReceipt", (req, res) => {
         //console.log("values", values);
         setupQueryMod(sqlpost, [values], (err, result) => {
           if (err) {
-            console.log("33");
-            //  console.log(err);
+            logger.error(err);
+
             return res.json({ status: "query", Error: "inside signup query" });
           } else {
-            console.log("4");
             return res.json({ Status: "Success", result: result });
           }
         });
@@ -123,6 +122,7 @@ paymentreceipts.put("/postReceipt/:RecdPVID", (req, res) => {
 
     setupQueryMod(selectQuery, async (selectError, selectResult) => {
       if (selectError) {
+        logger.error(selectError);
       } else {
         console.log("select result", selectResult);
         if (selectResult && selectResult.length > 0) {
@@ -153,7 +153,7 @@ paymentreceipts.put("/postReceipt/:RecdPVID", (req, res) => {
 
               setupQueryMod(updat, [id], (e, r) => {
                 if (e) {
-                  console.log(e);
+                  logger.error(e);
                   return res.json({
                     Status: "Error",
                     Error: "Failed to update",
@@ -163,7 +163,7 @@ paymentreceipts.put("/postReceipt/:RecdPVID", (req, res) => {
                 const data = `SELECT Receive_Now, Dc_inv_no FROM magodmis.payment_recd_voucher_details WHERE RecdPVID='${id}';`;
                 setupQueryMod(data, (err, result) => {
                   if (err) {
-                    console.log(err);
+                    logger.error(err);
                     return res.json({
                       Status: "Error",
                       Error: "Failed to fetch data",
@@ -177,10 +177,10 @@ paymentreceipts.put("/postReceipt/:RecdPVID", (req, res) => {
 
                     const dc_inv_no = result[i].Dc_inv_no;
                     setupQueryMod(
-                      `UPDATE magodmis.draft_dc_inv_register d SET d.PymtAmtRecd=d.PymtAmtRecd+'${result[i].Receive_Now}', d.DCStatus=If( d.GrandTotal=d.PymtAmtRecd,'Closed','Despatched') WHERE  d.DC_Inv_No='${dc_inv_no}'`,
+                      `UPDATE magodmis.draft_dc_inv_register d SET d.PymtAmtRecd=d.PymtAmtRecd+'${result[i].Receive_Now}', d.DCStatus=If( d.GrandTotal=d.PymtAmtRecd,'Closed','Dispatched') WHERE  d.DC_Inv_No='${dc_inv_no}'`,
                       (updateErr, updateRes) => {
                         if (updateErr) {
-                          //  console.log(updateErr);
+                          logger.error(updateErr);
                           return res.json({
                             Status: "Error",
                             Error: "Failed to update DC status",
@@ -211,10 +211,11 @@ paymentreceipts.get("/getinvlist", (req, res) => {
   console.log("cust code", customercode);
   //   const sql = "SELECT 'Jigani' AS UnitName,d.* FROM magodmis.draft_dc_inv_register d WHERE d.`Inv_no` IS NOT NULL AND d.`DCStatus` NOT LIKE 'Closed' AND  d.`DCStatus` NOT LIKE 'Cancelled' AND d.`Cust_Code`=?";
   const sql =
-    "SELECT 'Jigani' as UnitName,d.`DC_Inv_No`, d.`DC_InvType`, d.`Inv_No`, d.`Inv_Date`,d.`Cust_Code`, d.`Cust_Name`,d.`GrandTotal`, d.`PymtAmtRecd`, d.`GrandTotal`- d.`PymtAmtRecd` as Balance,d.`Inv_Fin_Year` FROM magodmis.draft_dc_inv_register d WHERE d.`Cust_Code` =? AND d.`DCStatus`='Despatched' AND d.`GrandTotal`<> d.`PymtAmtRecd`;";
+    // "SELECT 'Jigani' as UnitName,d.`DC_Inv_No`, d.`DC_InvType`, d.`Inv_No`, d.`Inv_Date`,d.`Cust_Code`, d.`Cust_Name`,d.`GrandTotal`, d.`PymtAmtRecd`, d.`GrandTotal`- d.`PymtAmtRecd` as Balance,d.`Inv_Fin_Year` FROM magodmis.draft_dc_inv_register d WHERE d.`Cust_Code` =? AND d.`DCStatus`='Dispatched' AND d.`GrandTotal`<> d.`PymtAmtRecd`;";
+    "SELECT d.`DC_Inv_No`, d.`DC_InvType`, d.`Inv_No`, d.`Inv_Date`,d.`Cust_Code`, d.`Cust_Name`,d.`GrandTotal`, d.`PymtAmtRecd`, d.`GrandTotal`- d.`PymtAmtRecd` as Balance,d.`Inv_Fin_Year` FROM magodmis.draft_dc_inv_register d WHERE d.`Cust_Code` =? AND d.`DCStatus`='Dispatched' AND d.`GrandTotal`<> d.`PymtAmtRecd`;";
   setupQueryMod(sql, [customercode], (err, result) => {
     if (err) {
-      console.log("error", err);
+      logger.error(err);
       return res.json({ Error: " error in sql" });
     } else {
       console.log("open  inv list result", result);
@@ -224,9 +225,7 @@ paymentreceipts.get("/getinvlist", (req, res) => {
 });
 
 paymentreceipts.put("/saveVoucherReceipt/:RecdPVID", async (req, res) => {
-  console.log("wertyuiop", req.body);
   const id = req.params.RecdPVID;
-  console.log("recd pvid", id);
 
   // Check if the data already exists in the database
   const results = await new Promise((resolve, reject) => {
@@ -234,6 +233,7 @@ paymentreceipts.put("/saveVoucherReceipt/:RecdPVID", async (req, res) => {
       `SELECT RecdPVID,RecdPvSrl,Dc_inv_no FROM magodmis.payment_recd_voucher_details where RecdPVID='${id}'`,
       (error, results) => {
         if (error) {
+          logger.error(error);
           reject(error);
         } else {
           console.log("only recdpvid", results);
@@ -256,7 +256,7 @@ paymentreceipts.put("/saveVoucherReceipt/:RecdPVID", async (req, res) => {
         `Update magodmis.payment_recd_voucher_details set Receive_Now=${coalesceReceiveNow}, InvUpdated='${item.InvUpdated}' where RecdPVID='${item.RecdPVID}' and Dc_inv_no='${item.Dc_inv_no}';`,
         (err, updateResult) => {
           if (err) {
-            console.log(err);
+            logger.error(err);
           } else {
             console.log("Update Success");
           }
@@ -267,7 +267,7 @@ paymentreceipts.put("/saveVoucherReceipt/:RecdPVID", async (req, res) => {
         `Update magodmis.payment_recd_voucher_register d set d.On_account = CASE WHEN  '${i}' = 0 THEN d.Amount-${coalesceReceiveNow} ELSE d.On_account-${coalesceReceiveNow} END where RecdPVID='${item.RecdPVID}';`,
         (err, r) => {
           if (err) {
-            console.log("errrr", err);
+            logger.error(err);
           } else {
           }
         }
@@ -298,7 +298,7 @@ paymentreceipts.put("/saveVoucherReceipt/:RecdPVID", async (req, res) => {
       console.log("values dc no", item.Dc_inv_no);
       setupQueryMod(sqlpost, [values], (err, insertResult) => {
         if (err) {
-          console.log("error in insert", err);
+          logger.error(err);
         } else {
           console.log("Insert Success");
         }
@@ -315,7 +315,7 @@ paymentreceipts.put("/saveVoucherReceipt/:RecdPVID", async (req, res) => {
         (err, r) => {
           //  console.log(i, r, 'rrrrrrrrrrrrrrrrrrrrr');
           if (err) {
-            console.log("eroor", err);
+            logger.error(err);
           } else {
           }
         }
@@ -333,7 +333,7 @@ paymentreceipts.get("/getreceiptdata", (req, res) => {
     "SELECT  * from magodmis.payment_recd_voucher_register  WHERE Cust_code =? and Recd_PVNo='Draft' ORDER BY RecdPVID DESC LIMIT 1;";
   setupQueryMod(sql, [customercode], (err, result) => {
     if (err) {
-      console.log("error", err);
+      logger.error(err);
       return res.json({ Error: " error in sql" });
     } else {
       // console.log("result", result);
@@ -384,7 +384,10 @@ paymentreceipts.delete("/deleteRecepitdetail/:PVSrlID", (req, res) => {
         const sql =
           "DELETE FROM magodmis.payment_recd_voucher_details WHERE PVSrlID=?";
         setupQueryMod(sql, [uid], (err, result) => {
-          if (err) return res.json({ Error: " err in sql" });
+          if (err) {
+            logger.error(err);
+            return res.json({ Error: " err in sql" });
+          }
 
           return res.json({ Status: "Success" });
         });
@@ -403,7 +406,10 @@ paymentreceipts.delete("/deleteRecepit/:RecdPVID", (req, res) => {
   const sql =
     "DELETE FROM magodmis.payment_recd_voucher_register WHERE RecdPVID=?";
   setupQueryMod(sql, [uid], (err, result) => {
-    if (err) return res.json({ Error: " err in sql" });
+    if (err) {
+      logger.error(err);
+      return res.json({ Error: " err in sql" });
+    }
 
     return res.json({ Status: "Success" });
   });
@@ -416,7 +422,7 @@ paymentreceipts.get("/getreceipt", (req, res) => {
     "SELECT  * from magodmis.payment_recd_voucher_register  WHERE RecdPVID=?;";
   setupQueryMod(sql, [receipt_id], (err, result) => {
     if (err) {
-      console.log("error", err);
+      logger.error(err);
       return res.json({ Error: " error in sql" });
     } else {
       //console.log("result", result);
@@ -432,7 +438,7 @@ paymentreceipts.get("/getrvdata", (req, res) => {
     "SELECT  * from magodmis.payment_recd_voucher_details  WHERE `RecdPVID` =?;";
   setupQueryMod(sql, [receipt_id], (err, result) => {
     if (err) {
-      console.log("error", err);
+      logger.error(err);
       return res.json({ Error: " error in sql" });
     } else {
       // console.log("result", result);
@@ -452,6 +458,7 @@ paymentreceipts.post("/addToVoucher", async (req, res, next) => {
     const checkRecdPvSrlData = await new Promise((resolve, reject) => {
       setupQueryMod(checkRecdPvSrlQuery, (err, data) => {
         if (err) {
+          logger.error(err);
           reject(err);
         } else {
           resolve(data);
@@ -466,6 +473,7 @@ paymentreceipts.post("/addToVoucher", async (req, res, next) => {
     const selectData = await new Promise((resolve, reject) => {
       setupQueryMod(selectQuery, (err, data) => {
         if (err) {
+          logger.error(err);
           reject(err);
         } else {
           resolve(data);
@@ -515,6 +523,7 @@ paymentreceipts.post("/addToVoucher", async (req, res, next) => {
         await new Promise((resolve, reject) => {
           setupQueryMod(insertQuery, (err, data) => {
             if (err) {
+              logger.error(err);
               insertResults.push({
                 id: DC_Inv_No,
                 error: "Insert failed.",
@@ -542,6 +551,7 @@ paymentreceipts.post("/addToVoucher", async (req, res, next) => {
     const finalSelectData = await new Promise((resolve, reject) => {
       setupQueryMod(finalSelectQuery, (err, data) => {
         if (err) {
+          logger.error(err);
           reject(err);
         } else {
           resolve(data);
@@ -568,7 +578,7 @@ paymentreceipts.post("/removeVoucher", async (req, res, next) => {
     const deleteQuery = `DELETE FROM magodmis.payment_recd_voucher_details WHERE PVSrlID=${PVSrlID}`;
     setupQueryMod(deleteQuery, (deleteErr) => {
       if (deleteErr) {
-        console.log("Delete error", deleteErr);
+        logger.error(deleteErr);
         return res.json({ Error: "Error in DELETE query", Details: deleteErr });
       }
 
@@ -576,7 +586,7 @@ paymentreceipts.post("/removeVoucher", async (req, res, next) => {
       const selectQuery = `SELECT * FROM magodmis.payment_recd_voucher_details WHERE RecdPVID=${RecdPVID}`;
       setupQueryMod(selectQuery, (selectErr, selectResult) => {
         if (selectErr) {
-          console.log("Select error", selectErr);
+          logger.error(selectErr);
           return res.json({
             Error: "Error in SELECT query after deletion",
             Details: selectErr,
@@ -604,14 +614,14 @@ paymentreceipts.post("/updateOnAccount", async (req, res, next) => {
     WHERE RecdPVID=${RecdPVID}`;
     setupQueryMod(updateQuery, (updateErr) => {
       if (updateErr) {
-        console.log("Update error", updateErr);
+        logger.error(updateErr);
       }
 
       // Select query to get the updated data after deletion
       const selectQuery = `SELECT On_account FROM magodmis.payment_recd_voucher_register WHERE RecdPVID=${RecdPVID}`;
       setupQueryMod(selectQuery, (selectErr, selectResult) => {
         if (selectErr) {
-          console.log("Select error", selectErr);
+          logger.error(selectErr);
           return res.json({
             Error: "Error in SELECT query after deletion",
             Details: selectErr,
@@ -639,7 +649,7 @@ paymentreceipts.get("/getRVlist", (req, res) => {
     "SELECT 'Jigani' as UnitName, d.* FROM magodmis.payment_recd_voucher_register d WHERE d.`Cust_Code` =?  ORDER BY d.Recd_PV_Date DESC;";
   setupQueryMod(sql, [customercode], (err, result) => {
     if (err) {
-      console.log("error", err);
+      logger.error(err);
       return res.json({ Error: " error in sql" });
     } else {
       //console.log("result", result);
@@ -670,7 +680,7 @@ paymentreceipts.get("/getonaccountdetails", (req, res) => {
 
   setupQueryMod(sql, (err, result) => {
     if (err) {
-      console.log("error", err);
+      logger.error(err);
       return res.json({ Error: " error in sql" });
     } else {
       //  console.log("result", result);
@@ -685,7 +695,7 @@ paymentreceipts.get("/getopenreceipts", (req, res) => {
     "SELECT p.`RecdPVID` as Id, 'Jigani' as UnitName,p.* FROM magodmis.payment_recd_voucher_register p WHERE p.ReceiptStatus ='Open' ORDER BY p.Recd_PV_Date DESC";
   setupQueryMod(sql, (err, result) => {
     if (err) {
-      console.log("error", err);
+      logger.error(err);
       return res.json({ Error: " error in sql" });
     } else {
       //  console.log("result", result);
@@ -700,7 +710,7 @@ paymentreceipts.get("/getclosedreceipts", (req, res) => {
     "SELECT p.`RecdPVID` as Id, 'Jigani' as UnitName,p.* FROM magodmis.payment_recd_voucher_register p WHERE p.ReceiptStatus ='Closed' ORDER BY p.Recd_PV_Date DESC";
   setupQueryMod(sql, (err, result) => {
     if (err) {
-      console.log("error", err);
+      logger.error(err);
       return res.json({ Error: " error in sql" });
     } else {
       //  console.log("result", result);
@@ -715,7 +725,7 @@ paymentreceipts.get("/getallreceipts", (req, res) => {
     "SELECT p.RecdPVID as Id, 'Jigani' as UnitName, p.* FROM magodmis.payment_recd_voucher_register p WHERE p.Recd_pvno <> 'Draft' ORDER BY p.Recd_pvno DESC";
   setupQueryMod(sql, (err, result) => {
     if (err) {
-      console.log("error", err);
+      logger.error(err);
       return res.json({ Error: " error in sql" });
     } else {
       //  console.log("result", result);
@@ -800,6 +810,21 @@ paymentreceipts.post("/getDCNo", async (req, res, next) => {
     console.error("An error occurred:", error);
     next(error);
   }
+});
+
+paymentreceipts.get("/txnTypes", (req, res) => {
+  const sql = "SELECT TxnType FROM magod_setup.txndb";
+
+  setupQueryMod(sql, (err, result) => {
+    if (err) {
+      console.log("err in txn types ", err);
+      logger.error(err);
+      return res.json({ Error: " error in sql" });
+    } else {
+      console.log("txn types result ", result);
+      return res.json({ Status: "Success", Result: result });
+    }
+  });
 });
 
 module.exports = paymentreceipts;
