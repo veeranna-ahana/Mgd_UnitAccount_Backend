@@ -6,16 +6,20 @@ var bodyParser = require("body-parser");
 const logger = require("../../../helpers/logger");
 
 customerOutstanding.get("/unitNames", (req, res) => {
-  const sql = `SELECT DISTINCT UnitName FROM magod_setup.magodlaser_units;`;
+  // const sql = `SELECT DISTINCT UnitName FROM magod_setup.magodlaser_units;`;
+  const sql = `SELECT DISTINCT UnitName , PhonePrimary, PhoneSecondary,URL, GST_No, CIN_No,Unit_Address, Email FROM magod_setup.magodlaser_units where UnitName='Jigani';`;
+ 
   setupQueryMod(sql, (err, result) => {
     if (err) {
       logger.error(err);
     } else {
-      console.log("success unit names", result.length);
+      
       return res.json({ Result: result });
     }
   });
 });
+
+
 
 customerOutstanding.get("/unitOutstandingData", (req, res) => {
   const unitname = req.query.unitname;
@@ -311,7 +315,7 @@ AND u.dcstatus NOT LIKE 'Closed';`;
     u.PymtAmtRecd,u.PIN_Code,u.DC_Inv_No,
     (SELECT SUM(GrandTotal) FROM magodmis.draft_dc_inv_register WHERE Cust_Code = '${custcode}' AND Inv_No IS NOT NULL AND dcstatus NOT LIKE 'Closed') AS Amount_Due
     FROM magodmis.draft_dc_inv_register u
-    WHERE    u.DC_InvType IN ('Sales', 'Job Work')   AND u.InvoiceFor='${invoiceFor}' AND 
+    WHERE    u.DC_InvType='${selectedDCType}'  AND u.InvoiceFor='${invoiceFor}' AND 
     u.Cust_Code = '${custcode}'
     AND u.Inv_No IS NOT NULL
     AND u.dcstatus NOT LIKE 'Closed'`;
@@ -405,7 +409,8 @@ AND u.dcstatus NOT LIKE 'Closed';`;
         }
       });
     }
-  } else if (selectedDCType !== "" && invoiceFor !== "") {
+  } 
+  else if (selectedDCType !== "" && invoiceFor !== "") {
     console.log("sales or  jobworkkkkkk");
     if (selectedDCType === "Sales & Jobwork") {
       setupQueryMod(salesANDjobwork, (err, result) => {
