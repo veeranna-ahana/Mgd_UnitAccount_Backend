@@ -88,6 +88,7 @@ custMonthlyReportRouter.post(
   }
 );
 
+
 //Monthly Invoice Summary
 custMonthlyReportRouter.post("/monthlyInvSummary", async (req, res, next) => {
   const month = req.body.month;

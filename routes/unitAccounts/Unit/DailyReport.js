@@ -255,7 +255,7 @@ dailyReportRouter.post("/reportSummary", async (req, res, next) => {
       `SELECT
       DC_InvType AS InvType,
       COUNT(*) AS invCount,
-      SUM(GrandTotal) AS Total
+      SUM(GrandTotal) AS Total4
   FROM
      magodmis.draft_dc_inv_register
   WHERE Inv_Date = '${date}'   

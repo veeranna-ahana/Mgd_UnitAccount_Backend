@@ -7,10 +7,7 @@ billingDetails.get("/getTabPageData", (req, res) => {
   const selectedDate = req.query.date;
   console.log("Selected Date in server:", selectedDate);
   try {
-    //const sqlquery=`SELECT * FROM magodmis.draft_dc_inv_register WHERE Inv_Date='2010-04-13'`
-
-    // const z=` SELECT m.UnitName,d.* FROM magodmis.draft_dc_inv_register d,magod_setup.magodlaser_units m WHERE
-    //  d.Inv_Date='${req.query.date}'`
+    
 
     const z = `SELECT  m.UnitName, d.* FROM magodmis.draft_dc_inv_register d,magod_setup.magodlaser_units m WHERE 
  d.Inv_Date='${req.query.date}' AND m.UnitName='Jigani' ;`;
@@ -104,10 +101,7 @@ JOIN (
 WHERE
     t1.Inv_Date = '${selectedDate}';`;
 
-  //     const k=`SELECT    DC_InvType,Inv_No , Net_Total,
-  //     COUNT(*) AS InvTypeCount,SUM(Net_Total) AS TotalNetAmount
-  // FROM magodmis.draft_dc_inv_register WHERE  Inv_Date = '2015-02-04'   GROUP BY
-  //     DC_InvType;`
+  
   misQuery(a, (err, data) => {
     if (err) {
       logger.error(error);
