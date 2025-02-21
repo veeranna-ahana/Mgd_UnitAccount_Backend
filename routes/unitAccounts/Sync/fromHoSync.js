@@ -2,6 +2,26 @@ const fromHOSyncRouter = require("express").Router();
 const { dailyReportQuery01, setupQuery } = require("../../../helpers/dbconn");
 var bodyParser = require("body-parser");
 
+const formatDateForDatabase = (isoDateString) => {
+  if (!isoDateString) return null; // Handle null or undefined input
+
+  const date = new Date(isoDateString);
+
+  if (isNaN(date.getTime())) {
+    throw new Error(`Invalid date value: ${isoDateString}`);
+  }
+
+  // Format as 'YYYY-MM-DD HH:MM:SS'
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0"); // Months are 0-based
+  const day = String(date.getDate()).padStart(2, "0");
+  const hours = String(date.getHours()).padStart(2, "0");
+  const minutes = String(date.getMinutes()).padStart(2, "0");
+  const seconds = String(date.getSeconds()).padStart(2, "0");
+
+  return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
+};
+
 //Purchase Invoices
 fromHOSyncRouter.post("/purchaseInv", async (req, res, next) => {
   const { open_pur_inv, open_inv_tax } = req.body;
@@ -14,6 +34,20 @@ fromHOSyncRouter.post("/purchaseInv", async (req, res, next) => {
     if (open_pur_inv && open_pur_inv.length > 0) {
       const responsePurInvData = await Promise.all(
         open_pur_inv.map(async (item, k) => {
+          const correctedDate = formatDateForDatabase(item.Inv_Date);
+          item.Inv_Date = correctedDate;
+
+          const correcteReceiptDate = formatDateForDatabase(item.Receipt_Date);
+          item.Receipt_Date = correcteReceiptDate;
+
+          const correctePIDate = formatDateForDatabase(item.PI_Date);
+          item.PI_Date = correctePIDate;
+
+          const correctePaymentDueDate = formatDateForDatabase(
+            item.PaymentDueDate
+          );
+          item.PaymentDueDate = correctePaymentDueDate;
+
           try {
             const creditValue = item.Credit ? 1 : 0;
             const query = `
@@ -189,6 +223,10 @@ fromHOSyncRouter.post("/vendorDataa", async (req, res, next) => {
       // Check if open_vendor_data exists and has length greater than 0
       const responseVendorData = await Promise.all(
         open_vendor_data.map(async (itemVendor, k) => {
+
+          const correctedDate = formatDateForDatabase(itemVendor.Registration_Date);
+          itemVendor.Registration_Date = correctedDate;
+
           try {
             const currentValue = itemVendor.CURRENT ? 1 : 0;
 
@@ -280,6 +318,8 @@ fromHOSyncRouter.post("/vendorDataa", async (req, res, next) => {
 //Payment Rv register
 fromHOSyncRouter.post("/paymentRvRegisterDataa", async (req, res, next) => {
   const { paymentrv_register, paymentrv_details } = req.body;
+  // console.log(req.body);
+
   let paymentRvUnitUid = null; // Define paymentRvUnitUid outside of the map scope
 
   try {
@@ -290,6 +330,10 @@ fromHOSyncRouter.post("/paymentRvRegisterDataa", async (req, res, next) => {
       const responseVendorData = [];
       for (let k = 0; k < paymentrv_register.length; k++) {
         const itemPayemetrv = paymentrv_register[k];
+
+        const correctedDate = formatDateForDatabase(itemPayemetrv.HoRefDate);
+
+        itemPayemetrv.HoRefDate = correctedDate;
         try {
           const paymentQuery = `
             INSERT INTO magodmis.ho_paymentrv_register (Unitname, Cust_code, CustName,
@@ -349,6 +393,7 @@ fromHOSyncRouter.post("/paymentRvRegisterDataa", async (req, res, next) => {
         }
       }
       responseData.push({ paymentRvRegister: responseVendorData });
+      // console.log(responseVendorData);
     }
 
     // Process paymentrv_details
@@ -356,6 +401,8 @@ fromHOSyncRouter.post("/paymentRvRegisterDataa", async (req, res, next) => {
       const responsePaymentRvDetails = [];
       for (let k = 0; k < paymentrv_details.length; k++) {
         const itemRvDetails = paymentrv_details[k];
+        const correctedDate = formatDateForDatabase(itemRvDetails.Inv_date);
+        itemRvDetails.Inv_date = correctedDate;
         try {
           const paymentQuery = `
             INSERT INTO magodmis.ho_paymentrv_details (HOPrvId, UnitID,  Unitname,
