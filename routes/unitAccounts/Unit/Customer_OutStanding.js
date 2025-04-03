@@ -470,7 +470,7 @@ customerOutstanding.get("/getDataTable2", (req, res) => {
       logger.error(err);
       console.log("err in query", err);
     } else {
-      //  console.log("DC_Inv_no result", result);
+        console.log("DC_Inv_no result", result.length);
       return res.json({ Result: result });
     }
   });

@@ -12,7 +12,7 @@ DATE_FORMAT(EffectiveTO, '%d/%m/%Y') AS FormattedEffectiveTO
 FROM magod_setup.taxdb;
 `;
 
-    const sql2 = `SELECT * FROM magod_setup.taxdb`;
+    // const sql2 = `SELECT * FROM magod_setup.taxdb`;
 
     setupQueryMod(sql, (err, data) => {
       if (err) {

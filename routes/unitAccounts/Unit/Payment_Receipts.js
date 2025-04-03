@@ -15,6 +15,7 @@ paymentreceipts.get("/getcustomerdata", (req, res) => {
   setupQueryMod(sql, (err, result) => {
     if (err) {
       logger.error(err);
+      
       console.log("error", err);
       return res.json({ Error: " error in sql" });
     } else {
@@ -177,7 +178,8 @@ paymentreceipts.put("/postReceipt/:RecdPVID", (req, res) => {
 
                     const dc_inv_no = result[i].Dc_inv_no;
                     setupQueryMod(
-                      `UPDATE magodmis.draft_dc_inv_register d SET d.PymtAmtRecd=d.PymtAmtRecd+'${result[i].Receive_Now}', d.DCStatus=If( d.GrandTotal=d.PymtAmtRecd,'Closed','Dispatched') WHERE  d.DC_Inv_No='${dc_inv_no}'`,
+                      `UPDATE magodmis.draft_dc_inv_register d SET d.PymtAmtRecd=d.PymtAmtRecd+'${result[i].Receive_Now}', d.DCStatus=If( d.GrandTotal=d.PymtAmtRecd,'Closed','Despatched') WHERE  d.DC_Inv_No='${dc_inv_no}'`,
+                     
                       (updateErr, updateRes) => {
                         if (updateErr) {
                           logger.error(updateErr);
@@ -212,7 +214,7 @@ paymentreceipts.get("/getinvlist", (req, res) => {
   //   const sql = "SELECT 'Jigani' AS UnitName,d.* FROM magodmis.draft_dc_inv_register d WHERE d.`Inv_no` IS NOT NULL AND d.`DCStatus` NOT LIKE 'Closed' AND  d.`DCStatus` NOT LIKE 'Cancelled' AND d.`Cust_Code`=?";
   const sql =
     // "SELECT 'Jigani' as UnitName,d.`DC_Inv_No`, d.`DC_InvType`, d.`Inv_No`, d.`Inv_Date`,d.`Cust_Code`, d.`Cust_Name`,d.`GrandTotal`, d.`PymtAmtRecd`, d.`GrandTotal`- d.`PymtAmtRecd` as Balance,d.`Inv_Fin_Year` FROM magodmis.draft_dc_inv_register d WHERE d.`Cust_Code` =? AND d.`DCStatus`='Dispatched' AND d.`GrandTotal`<> d.`PymtAmtRecd`;";
-    "SELECT d.`DC_Inv_No`, d.`DC_InvType`, d.`Inv_No`, d.`Inv_Date`,d.`Cust_Code`, d.`Cust_Name`,d.`GrandTotal`, d.`PymtAmtRecd`, d.`GrandTotal`- d.`PymtAmtRecd` as Balance,d.`Inv_Fin_Year` FROM magodmis.draft_dc_inv_register d WHERE d.`Cust_Code` =? AND d.`DCStatus`='Dispatched' AND d.`GrandTotal`<> d.`PymtAmtRecd`;";
+    "SELECT d.`DC_Inv_No`, d.`DC_InvType`, d.`Inv_No`, d.`Inv_Date`,d.`Cust_Code`, d.`Cust_Name`,d.`GrandTotal`, d.`PymtAmtRecd`, d.`GrandTotal`- d.`PymtAmtRecd` as Balance,d.`Inv_Fin_Year` FROM magodmis.draft_dc_inv_register d WHERE d.`Cust_Code` =? AND d.`DCStatus`='Despatched' AND d.`GrandTotal`<> d.`PymtAmtRecd`;";
   setupQueryMod(sql, [customercode], (err, result) => {
     if (err) {
       logger.error(err);
@@ -325,6 +327,12 @@ paymentreceipts.put("/saveVoucherReceipt/:RecdPVID", async (req, res) => {
 
   res.json({ Status: "Success", result: rows, RecdPVsrl: req.body[0] });
 });
+
+
+
+
+
+
 
 paymentreceipts.get("/getreceiptdata", (req, res) => {
   const customercode = req.query.customercode; // Access the query parameter "customercode"
