@@ -12,59 +12,61 @@ billingDetails.get("/getTabPageData", (req, res) => {
     const z = `SELECT  m.UnitName, d.* FROM magodmis.draft_dc_inv_register d,magod_setup.magodlaser_units m WHERE 
  d.Inv_Date='${req.query.date}' AND m.UnitName='Jigani' ;`;
 
-    const z1 = ` SELECT
- m.UnitName,
- d.*,
- CASE
-     WHEN TIME(d.DC_inv_Date) != '00:00:00' THEN DATE_FORMAT(d.DC_inv_Date, '%d-%m-%Y %H:%i:%s')
-     ELSE DATE_FORMAT(d.DC_inv_Date, '%d-%m-%Y')
- END AS Formatted_DC_inv_Date,
- CASE
-     WHEN TIME(d.OrderDate) != '00:00:00' THEN DATE_FORMAT(d.OrderDate, '%d-%m-%Y %H:%i:%s')
-     ELSE DATE_FORMAT(d.OrderDate, '%d-%m-%Y')
- END AS Formatted_OrderDate,
- CASE
-     WHEN TIME(d.DC_Date) != '00:00:00' THEN DATE_FORMAT(d.DC_Date, '%d-%m-%Y %H:%i:%s')
-     ELSE DATE_FORMAT(d.DC_Date, '%d-%m-%Y')
- END AS Formatted_DC_Date,
- CASE
-     WHEN TIME(d.Inv_Date) != '00:00:00' THEN DATE_FORMAT(d.Inv_Date, '%d-%m-%Y %H:%i:%s')
-     ELSE DATE_FORMAT(d.Inv_Date, '%d-%m-%Y')
- END AS Formatted_Inv_Date,
- CASE
-     WHEN TIME(d.PaymentDate) != '00:00:00' THEN DATE_FORMAT(d.PaymentDate, '%d-%m-%Y %H:%i:%s')
-     ELSE DATE_FORMAT(d.PaymentDate, '%d-%m-%Y')
- END AS Formatted_PaymentDate,
- CASE
-     WHEN TIME(d.DespatchDate) != '00:00:00' THEN DATE_FORMAT(d.DespatchDate, '%d-%m-%Y %H:%i:%s')
-     ELSE DATE_FORMAT(d.DespatchDate, '%d-%m-%Y')
- END AS Formatted_DespatchDate,
- CASE
-     WHEN TIME(d.PaymentDate) != '00:00:00' THEN DATE_FORMAT(d.PaymentDate, '%d-%m-%Y %H:%i:%s')
-     ELSE DATE_FORMAT(d.PaymentDate, '%d-%m-%Y')
- END AS Formatted_PaymentDate,
- CASE
-     WHEN TIME(d.PO_Date) != '00:00:00' THEN DATE_FORMAT(d.PO_Date, '%d-%m-%Y %H:%i:%s')
-     ELSE DATE_FORMAT(d.PO_Date, '%d-%m-%Y')
- END AS Formatted_PO_Date,
- CASE
-     WHEN TIME(d.DespatchTime) != '00:00:00' THEN DATE_FORMAT(d.DespatchTime, '%d-%m-%Y %H:%i:%s')
-     ELSE DATE_FORMAT(d.DespatchTime, '%d-%m-%Y')
- END AS Formatted_DespatchTime
-FROM
- magodmis.draft_dc_inv_register d
-INNER JOIN
- magod_setup.magodlaser_units m
-ON
- m.UnitName = 'Jigani' AND  m.Current = 1
-WHERE
- d.Inv_Date = '${req.query.date}';`;
-    misQuery(z1, (err, data) => {
+//     const z1 = ` SELECT
+//  m.UnitName,
+//  d.*,
+//  CASE
+//      WHEN TIME(d.DC_inv_Date) != '00:00:00' THEN DATE_FORMAT(d.DC_inv_Date, '%d-%m-%Y %H:%i:%s')
+//      ELSE DATE_FORMAT(d.DC_inv_Date, '%d-%m-%Y')
+//  END AS Formatted_DC_inv_Date,
+//  CASE
+//      WHEN TIME(d.OrderDate) != '00:00:00' THEN DATE_FORMAT(d.OrderDate, '%d-%m-%Y %H:%i:%s')
+//      ELSE DATE_FORMAT(d.OrderDate, '%d-%m-%Y')
+//  END AS Formatted_OrderDate,
+//  CASE
+//      WHEN TIME(d.DC_Date) != '00:00:00' THEN DATE_FORMAT(d.DC_Date, '%d-%m-%Y %H:%i:%s')
+//      ELSE DATE_FORMAT(d.DC_Date, '%d-%m-%Y')
+//  END AS Formatted_DC_Date,
+//  CASE
+//      WHEN TIME(d.Inv_Date) != '00:00:00' THEN DATE_FORMAT(d.Inv_Date, '%d-%m-%Y %H:%i:%s')
+//      ELSE DATE_FORMAT(d.Inv_Date, '%d-%m-%Y')
+//  END AS Formatted_Inv_Date,
+//  CASE
+//      WHEN TIME(d.PaymentDate) != '00:00:00' THEN DATE_FORMAT(d.PaymentDate, '%d-%m-%Y %H:%i:%s')
+//      ELSE DATE_FORMAT(d.PaymentDate, '%d-%m-%Y')
+//  END AS Formatted_PaymentDate,
+//  CASE
+//      WHEN TIME(d.DespatchDate) != '00:00:00' THEN DATE_FORMAT(d.DespatchDate, '%d-%m-%Y %H:%i:%s')
+//      ELSE DATE_FORMAT(d.DespatchDate, '%d-%m-%Y')
+//  END AS Formatted_DespatchDate,
+//  CASE
+//      WHEN TIME(d.PaymentDate) != '00:00:00' THEN DATE_FORMAT(d.PaymentDate, '%d-%m-%Y %H:%i:%s')
+//      ELSE DATE_FORMAT(d.PaymentDate, '%d-%m-%Y')
+//  END AS Formatted_PaymentDate,
+//  CASE
+//      WHEN TIME(d.PO_Date) != '00:00:00' THEN DATE_FORMAT(d.PO_Date, '%d-%m-%Y %H:%i:%s')
+//      ELSE DATE_FORMAT(d.PO_Date, '%d-%m-%Y')
+//  END AS Formatted_PO_Date,
+//  CASE
+//      WHEN TIME(d.DespatchTime) != '00:00:00' THEN DATE_FORMAT(d.DespatchTime, '%d-%m-%Y %H:%i:%s')
+//      ELSE DATE_FORMAT(d.DespatchTime, '%d-%m-%Y')
+//  END AS Formatted_DespatchTime
+// FROM
+//  magodmis.draft_dc_inv_register d
+// INNER JOIN
+//  magod_setup.magodlaser_units m
+// ON
+//  m.UnitName = 'Jigani' AND  m.Current = 1
+// WHERE
+//  d.Inv_Date = '${req.query.date}';`;
+
+
+    misQuery(z, (err, data) => {
       if (err) {
         logger.error(err);
         // console.log("err in query", err);
       } else {
-        console.log("long table tabdata", data);
+        console.log("2nd tab payemnt details table tabdata", data.length);
         return res.json({ Status: "Success", Result: data });
       }
     });
@@ -104,9 +106,9 @@ WHERE
   
   misQuery(a, (err, data) => {
     if (err) {
-      logger.error(error);
+      logger.error(err);
     } else {
-      //console.log("data", data);
+      // console.log("dataaaaa", data.length);
       return res.json({ Status: "Success", Result: data });
     }
   });
