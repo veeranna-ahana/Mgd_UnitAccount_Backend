@@ -10,6 +10,7 @@ function formatDate(dateStr) {
   return `${year}-${month}-${day}`;
 }
 
+
 paymentreceipts.get("/getcustomerdata", (req, res) => {
   const sql = "SELECT Cust_Code, Cust_name FROM magodmis.cust_data";
   setupQueryMod(sql, (err, result) => {
@@ -26,8 +27,9 @@ paymentreceipts.get("/getcustomerdata", (req, res) => {
 });
 
 paymentreceipts.post("/saveReceipt", (req, res) => {
-  console.log("qqqqqqqqqq", req.body.Recd_PV_Date);
+ 
   const newdate = formatDate(req.body.Recd_PV_Date);
+  console.log("qqqqqqqqqq", newdate);
 
   if (req.body.RecdPVID != "") {
     if (req.body.Amount == "") {
@@ -137,11 +139,20 @@ paymentreceipts.put("/postReceipt/:RecdPVID", (req, res) => {
           console.log("New HrefNo:", newHrefNo);
 
           // Update Running_No in magod_setup.magod_runningno
-          const updateRunningNoQuery = `
-      UPDATE magod_setup.magod_runningno
-      SET Running_No = ${numericPart}
-      WHERE SrlType='${srlType}' AND UnitName='${unit}' AND Period='${finYear}' AND Running_EffectiveDate = CURDATE();
-    `;
+    //       const updateRunningNoQuery = `
+    //   UPDATE magod_setup.magod_runningno
+    //   SET Running_No = ${numericPart}
+    //   WHERE SrlType='${srlType}' AND UnitName='${unit}' AND Period='${finYear}' 
+    //   AND Running_EffectiveDate = CURDATE();
+    // `;
+
+    const updateRunningNoQuery = `
+    UPDATE magod_setup.magod_runningno
+    SET Running_No = ${numericPart},
+     Running_EffectiveDate = CURDATE()
+    WHERE SrlType='${srlType}' AND UnitName='${unit}' AND Period='${finYear}' 
+    ;
+  `;
 
           setupQueryMod(updateRunningNoQuery, (updateError, updateResult) => {
             if (updateError) {
@@ -220,7 +231,7 @@ paymentreceipts.get("/getinvlist", (req, res) => {
       logger.error(err);
       return res.json({ Error: " error in sql" });
     } else {
-      console.log("open  inv list result", result);
+      console.log("open  inv list result", result.length);
       return res.json({ Status: "Success", Result: result });
     }
   });
